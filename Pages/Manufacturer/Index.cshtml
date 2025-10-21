@@ -1,0 +1,91 @@
+@page
+@model ManufacturerIndexModel
+@{
+    ViewData["Title"] = "Nhà Sản Xuất";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Quản Lý NFT Lô Thuốc</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="/manufacturer/create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Tạo NFT Mới
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Danh Sách NFTs</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tên Thuốc</th>
+                            <th>Số Lô</th>
+                            <th>Trạng Thái</th>
+                            <th>Ngày Tạo</th>
+                            <th>Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nftTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Đang tải...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadNFTs();
+        });
+
+        function loadNFTs() {
+            const manufacturerAddress = localStorage.getItem('walletAddress');
+            if (!manufacturerAddress) {
+                $('#nftTableBody').html('<tr><td colspan="5" class="text-center text-danger">Vui lòng kết nối ví</td></tr>');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/manufacturer?manufacturerAddress=' + manufacturerAddress,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let html = '';
+                        response.data.forEach(nft => {
+                            html += `
+                                <tr>
+                                    <td>${nft.name}</td>
+                                    <td>${nft.batchNumber}</td>
+                                    <td><span class="badge bg-info">${nft.status}</span></td>
+                                    <td>${new Date(nft.createdAt).toLocaleDateString('vi-VN')}</td>
+                                    <td>
+                                        <a href="/manufacturer/detail/${nft.id}" class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        $('#nftTableBody').html(html);
+                    } else {
+                        $('#nftTableBody').html('<tr><td colspan="5" class="text-center text-muted">Không có NFT nào</td></tr>');
+                    }
+                },
+                error: function() {
+                    $('#nftTableBody').html('<tr><td colspan="5" class="text-center text-danger">Lỗi khi tải dữ liệu</td></tr>');
+                }
+            });
+        }
+    </script>
+}

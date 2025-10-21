@@ -1,0 +1,258 @@
+@page
+@model PharmacyIndexModel
+@{
+    ViewData["Title"] = "Nhà Thuốc";
+}
+
+<div class="container mt-4">
+    <h2>Quản Lý Lô Thuốc</h2>
+
+    <ul class="nav nav-tabs mt-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button">
+                <i class="fas fa-boxes"></i> Kho Hàng
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button">
+                <i class="fas fa-inbox"></i> Yêu Cầu Chuyển Lô
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button">
+                <i class="fas fa-search"></i> Tra Cứu Thuốc
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        <!-- Inventory Tab -->
+        <div class="tab-pane fade show active" id="inventory" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Danh Sách Lô Thuốc Trong Kho</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tên Thuốc</th>
+                                    <th>Số Lô</th>
+                                    <th>Ngày Hết Hạn</th>
+                                    <th>Trạng Thái</th>
+                                    <th>Hành Động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody">
+                                <tr><td colspan="5" class="text-center text-muted">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transfer Requests Tab -->
+        <div class="tab-pane fade" id="requests" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Yêu Cầu Chuyển Lô Đang Chờ</h5>
+                </div>
+                <div class="card-body">
+                    <div id="transferRequestsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Tab -->
+        <div class="tab-pane fade" id="search" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tra Cứu Thông Tin Thuốc</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="searchBatchNumber" placeholder="Nhập số lô thuốc...">
+                        <button class="btn btn-primary" type="button" id="searchBtn">
+                            <i class="fas fa-search"></i> Tìm Kiếm
+                        </button>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadInventory();
+            loadTransferRequests();
+            
+            $('#searchBtn').click(function() {
+                searchDrug();
+            });
+        });
+
+        function loadInventory() {
+            const pharmacyAddress = localStorage.getItem('walletAddress');
+            $.ajax({
+                url: '/api/pharmacy?pharmacyAddress=' + pharmacyAddress,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let html = '';
+                        response.data.forEach(nft => {
+                            html += `
+                                <tr>
+                                    <td>${nft.name}</td>
+                                    <td>${nft.batchNumber}</td>
+                                    <td>-</td>
+                                    <td><span class="badge bg-success">Có sẵn</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewDetails(${nft.id})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        $('#inventoryTableBody').html(html);
+                    }
+                }
+            });
+        }
+
+        function loadTransferRequests() {
+            const pharmacyAddress = localStorage.getItem('walletAddress');
+            $.ajax({
+                url: '/api/pharmacy/transfer-requests?pharmacyAddress=' + pharmacyAddress,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let html = '<div class="row">';
+                        response.data.forEach(req => {
+                            html += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Lô: ${req.batchNumber}</h6>
+                                            <p class="card-text small">Từ: ${req.distributorAddress}</p>
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn btn-sm btn-success" onclick="approveTransfer(${req.id})">
+                                                    <i class="fas fa-check"></i> Duyệt
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger" onclick="rejectTransfer(${req.id})">
+                                                    <i class="fas fa-times"></i> Từ Chối
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                        $('#transferRequestsList').html(html);
+                    } else {
+                        $('#transferRequestsList').html('<p class="text-muted">Không có yêu cầu nào</p>');
+                    }
+                }
+            });
+        }
+
+        function searchDrug() {
+            const batchNumber = $('#searchBatchNumber').val();
+            if (!batchNumber) {
+                alert('Vui lòng nhập số lô');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/pharmacy/batch/' + batchNumber,
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const nft = response.data;
+                        let html = `
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5>${nft.name}</h5>
+                                    <p><strong>Số Lô:</strong> ${nft.batchNumber}</p>
+                                    <p><strong>Trạng Thái:</strong> <span class="badge bg-info">${nft.status}</span></p>
+                                    <p><strong>Nhà Sản Xuất:</strong> ${nft.manufacturerAddress}</p>
+                                    <button class="btn btn-primary" onclick="viewHistory(${nft.id})">
+                                        <i class="fas fa-history"></i> Xem Lịch Sử
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        $('#searchResults').html(html);
+                    } else {
+                        $('#searchResults').html('<div class="alert alert-warning">Không tìm thấy thuốc</div>');
+                    }
+                }
+            });
+        }
+
+        function approveTransfer(requestId) {
+            const warehouseLocation = prompt('Nhập địa điểm kho:');
+            if (!warehouseLocation) return;
+
+            $.ajax({
+                url: '/api/pharmacy/transfer-requests/' + requestId + '/approve',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ warehouseLocation: warehouseLocation }),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Đã duyệt yêu cầu');
+                        loadTransferRequests();
+                    }
+                }
+            });
+        }
+
+        function rejectTransfer(requestId) {
+            const reason = prompt('Nhập lý do từ chối:');
+            if (!reason) return;
+
+            $.ajax({
+                url: '/api/pharmacy/transfer-requests/' + requestId + '/reject',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ reason: reason }),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Đã từ chối yêu cầu');
+                        loadTransferRequests();
+                    }
+                }
+            });
+        }
+
+        function viewHistory(nftId) {
+            $.ajax({
+                url: '/api/pharmacy/' + nftId + '/history',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        let html = '<h6>Lịch Sử Lô Thuốc</h6><ul class="list-group">';
+                        response.data.forEach(milestone => {
+                            html += `
+                                <li class="list-group-item">
+                                    <strong>${milestone.type}</strong><br>
+                                    ${milestone.description}<br>
+                                    <small class="text-muted">${new Date(milestone.timestamp).toLocaleString('vi-VN')}</small>
+                                </li>
+                            `;
+                        });
+                        html += '</ul>';
+                        $('#searchResults').html(html);
+                    }
+                }
+            });
+        }
+    </script>
+}

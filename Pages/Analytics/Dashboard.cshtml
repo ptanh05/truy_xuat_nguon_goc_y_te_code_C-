@@ -1,0 +1,328 @@
+@page
+@model AnalyticsDashboardModel
+@{
+    ViewData["Title"] = "Analytics & BI Dashboard";
+}
+
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Analytics & Business Intelligence Dashboard</h1>
+
+    <!-- KPI Cards -->
+    <div class="row mb-4" id="kpiContainer">
+        <!-- Populated by JavaScript -->
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>NFT Creation Trend (30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="nftTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Transfer Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="transferStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Revenue Trend (30 Days)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="revenueTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>NFT by Manufacturer</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="manufacturerChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictions & Anomalies -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>7-Day Predictions</h5>
+                </div>
+                <div class="card-body">
+                    <div id="predictionsContainer">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Anomaly Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div id="anomaliesContainer">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>System Performance Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="performanceContainer">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let charts = {};
+
+        async function loadDashboard() {
+            await loadKPIs();
+            await loadTrends();
+            await loadAnalysis();
+            await loadPredictions();
+            await loadAnomalies();
+            await loadPerformance();
+        }
+
+        async function loadKPIs() {
+            try {
+                const response = await fetch('/api/analytics/dashboard');
+                const metrics = await response.json();
+                
+                const container = document.getElementById('kpiContainer');
+                container.innerHTML = `
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Total NFTs</h6>
+                                <h3>${metrics.totalNFTs}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Transfers</h6>
+                                <h3>${metrics.totalTransfers}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Active Users</h6>
+                                <h3>${metrics.activeUsers}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <h6 class="card-title">Total Value</h6>
+                                <h3>$${(metrics.totalValue / 1000000).toFixed(2)}M</h3>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading KPIs:', error);
+            }
+        }
+
+        async function loadTrends() {
+            try {
+                const [nftTrend, transferTrend, revenueTrend] = await Promise.all([
+                    fetch('/api/analytics/nft-trend?days=30').then(r => r.json()),
+                    fetch('/api/analytics/transfer-trend?days=30').then(r => r.json()),
+                    fetch('/api/analytics/revenue-trend?days=30').then(r => r.json())
+                ]);
+
+                // NFT Trend Chart
+                const nftCtx = document.getElementById('nftTrendChart').getContext('2d');
+                charts.nftTrend = new Chart(nftCtx, {
+                    type: 'line',
+                    data: {
+                        labels: nftTrend.map(t => new Date(t.date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'NFTs Created',
+                            data: nftTrend.map(t => t.count),
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+
+                // Revenue Trend Chart
+                const revenueCtx = document.getElementById('revenueTrendChart').getContext('2d');
+                charts.revenueTrend = new Chart(revenueCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: revenueTrend.map(t => new Date(t.date).toLocaleDateString()),
+                        datasets: [{
+                            label: 'Revenue ($)',
+                            data: revenueTrend.map(t => t.amount),
+                            backgroundColor: '#198754'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            } catch (error) {
+                console.error('Error loading trends:', error);
+            }
+        }
+
+        async function loadAnalysis() {
+            try {
+                const [transferStatus, manufacturer] = await Promise.all([
+                    fetch('/api/analytics/transfer-by-status').then(r => r.json()),
+                    fetch('/api/analytics/nft-by-manufacturer').then(r => r.json())
+                ]);
+
+                // Transfer Status Chart
+                const statusCtx = document.getElementById('transferStatusChart').getContext('2d');
+                charts.transferStatus = new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: transferStatus.map(t => t.category),
+                        datasets: [{
+                            data: transferStatus.map(t => t.count),
+                            backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+
+                // Manufacturer Chart
+                const mfgCtx = document.getElementById('manufacturerChart').getContext('2d');
+                charts.manufacturer = new Chart(mfgCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: manufacturer.map(m => m.category),
+                        datasets: [{
+                            label: 'Count',
+                            data: manufacturer.map(m => m.count),
+                            backgroundColor: '#0dcaf0'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true, indexAxis: 'y' }
+                });
+            } catch (error) {
+                console.error('Error loading analysis:', error);
+            }
+        }
+
+        async function loadPredictions() {
+            try {
+                const predictions = await fetch('/api/analytics/predictions?days=30').then(r => r.json());
+                
+                const container = document.getElementById('predictionsContainer');
+                container.innerHTML = predictions.map(p => `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>${new Date(p.date).toLocaleDateString()}</small>
+                            <small class="text-muted">${(p.confidence * 100).toFixed(0)}% confidence</small>
+                        </div>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar" style="width: ${p.confidence * 100}%"></div>
+                        </div>
+                        <small>NFTs: ${p.predictedNFTCreations} | Transfers: ${p.predictedTransfers} | Revenue: $${p.predictedRevenue.toFixed(2)}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading predictions:', error);
+            }
+        }
+
+        async function loadAnomalies() {
+            try {
+                const anomalies = await fetch('/api/analytics/anomalies').then(r => r.json());
+                
+                const container = document.getElementById('anomaliesContainer');
+                if (anomalies.length === 0) {
+                    container.innerHTML = '<p class="text-muted">No anomalies detected</p>';
+                } else {
+                    container.innerHTML = anomalies.slice(0, 5).map(a => `
+                        <div class="alert alert-${getSeverityColor(a.severity)} mb-2">
+                            <strong>${a.alertType}</strong><br>
+                            <small>${a.description}</small>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading anomalies:', error);
+            }
+        }
+
+        async function loadPerformance() {
+            try {
+                const performance = await fetch('/api/analytics/performance').then(r => r.json());
+                
+                const container = document.getElementById('performanceContainer');
+                container.innerHTML = Object.entries(performance).map(([key, value]) => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h6 class="card-title">${key}</h6>
+                                <h4>${typeof value === 'number' ? value.toFixed(2) : value}</h4>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading performance:', error);
+            }
+        }
+
+        function getSeverityColor(severity) {
+            switch(severity) {
+                case 'Low': return 'info';
+                case 'Medium': return 'warning';
+                case 'High': return 'danger';
+                case 'Critical': return 'dark';
+                default: return 'secondary';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            setInterval(loadDashboard, 60000); // Refresh every minute
+        });
+    </script>
+}

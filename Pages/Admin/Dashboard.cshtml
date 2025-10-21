@@ -1,0 +1,244 @@
+@page
+@model AdminDashboardModel
+@{
+    ViewData["Title"] = "Bảng Điều Khiển Quản Trị";
+}
+
+<div class="container-fluid mt-4">
+    <h2>Bảng Điều Khiển Quản Trị</h2>
+
+    <div class="row mt-4">
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Tổng NFTs</h6>
+                    <h3 id="totalNFTs">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Tổng Người Dùng</h6>
+                    <h3 id="totalUsers">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Chuyển Lô Đang Chờ</h6>
+                    <h3 id="pendingTransfers">-</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Tổng Chuyển Lô</h6>
+                    <h3 id="totalTransfers">-</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">NFTs Theo Trạng Thái</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="nftStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Người Dùng Theo Vai Trò</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="userRoleChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Quản Lý Người Dùng</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="fas fa-user-plus"></i> Thêm Người Dùng
+                    </button>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="usersTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Địa Chỉ Ví</th>
+                                    <th>Vai Trò</th>
+                                    <th>Tên</th>
+                                    <th>Email</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr><td colspan="5" class="text-center text-muted">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm Người Dùng Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="mb-3">
+                        <label for="walletAddress" class="form-label">Địa Chỉ Ví</label>
+                        <input type="text" class="form-control" id="walletAddress" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Vai Trò</label>
+                        <select class="form-select" id="role" required>
+                            <option value="">Chọn vai trò</option>
+                            <option value="Manufacturer">Nhà Sản Xuất</option>
+                            <option value="Distributor">Nhà Phân Phối</option>
+                            <option value="Pharmacy">Nhà Thuốc</option>
+                            <option value="Admin">Quản Trị Viên</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Tên</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-primary" onclick="addUser()">Thêm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadDashboard();
+            loadUsers();
+        });
+
+        function loadDashboard() {
+            $.ajax({
+                url: '/api/admin/dashboard',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+                        $('#totalNFTs').text(data.totalNFTs);
+                        $('#totalUsers').text(data.totalUsers);
+                        $('#pendingTransfers').text(data.pendingTransfers);
+                        $('#totalTransfers').text(data.totalTransfers);
+
+                        // NFT Status Chart
+                        const statusLabels = data.nftsByStatus.map(s => s.status);
+                        const statusCounts = data.nftsByStatus.map(s => s.count);
+                        
+                        new Chart(document.getElementById('nftStatusChart'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: statusLabels,
+                                datasets: [{
+                                    data: statusCounts,
+                                    backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0']
+                                }]
+                            }
+                        });
+
+                        // User Role Chart
+                        const roleLabels = data.usersByRole.map(r => r.role);
+                        const roleCounts = data.usersByRole.map(r => r.count);
+                        
+                        new Chart(document.getElementById('userRoleChart'), {
+                            type: 'bar',
+                            data: {
+                                labels: roleLabels,
+                                datasets: [{
+                                    label: 'Số Người Dùng',
+                                    data: roleCounts,
+                                    backgroundColor: '#0d6efd'
+                                }]
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        function loadUsers() {
+            $.ajax({
+                url: '/api/admin/users',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        let html = '';
+                        response.data.forEach(user => {
+                            html += `
+                                <tr>
+                                    <td><code>${user.walletAddress.substring(0, 10)}...</code></td>
+                                    <td>${user.role}</td>
+                                    <td>${user.name || '-'}</td>
+                                    <td>${user.email || '-'}</td>
+                                    <td><span class="badge ${user.isActive ? 'bg-success' : 'bg-danger'}">${user.isActive ? 'Hoạt động' : 'Vô hiệu'}</span></td>
+                                </tr>
+                            `;
+                        });
+                        $('#usersTableBody').html(html);
+                    }
+                }
+            });
+        }
+
+        function addUser() {
+            const formData = {
+                walletAddress: $('#walletAddress').val(),
+                role: $('#role').val(),
+                name: $('#name').val(),
+                email: $('#email').val()
+            };
+
+            $.ajax({
+                url: '/api/admin/users',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    if (response.success) {
+                        alert('Thêm người dùng thành công');
+                        $('#addUserForm')[0].reset();
+                        bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+                        loadUsers();
+                    }
+                }
+            });
+        }
+    </script>
+}

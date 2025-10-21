@@ -1,0 +1,179 @@
+@page
+@model NotificationCenterModel
+@{
+    ViewData["Title"] = "Notification Center";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-4">Notification Center</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All</option>
+                            <option value="unread">Unread</option>
+                            <option value="read">Read</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="transfer_request">Transfer Request</option>
+                            <option value="transfer_approved">Transfer Approved</option>
+                            <option value="low_stock">Low Stock</option>
+                            <option value="expiry_warning">Expiry Warning</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary w-100 mb-2" onclick="loadNotifications()">Filter</button>
+                    <button class="btn btn-secondary w-100" onclick="clearFilters()">Clear</button>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-success w-100 mb-2" onclick="markAllAsRead()">Mark All as Read</button>
+                    <button class="btn btn-danger w-100" onclick="deleteAllNotifications()">Delete All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Notifications</h5>
+                        <span class="badge bg-primary" id="unreadBadge">0</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="notificationsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentWalletAddress = 'user_wallet_address'; // Get from session/auth
+
+        $(document).ready(function() {
+            loadNotifications();
+            setInterval(loadNotifications, 30000); // Refresh every 30 seconds
+        });
+
+        function loadNotifications() {
+            const status = $('#statusFilter').val();
+            const type = $('#typeFilter').val();
+            const url = status === 'unread' 
+                ? `/api/notification/unread/${currentWalletAddress}`
+                : `/api/notification/user/${currentWalletAddress}`;
+
+            $.get(url, function(data) {
+                let html = '';
+                if (data.length === 0) {
+                    html = '<p class="text-muted">No notifications</p>';
+                } else {
+                    data.forEach(notif => {
+                        const typeClass = notif.isRead ? 'bg-light' : 'bg-white border-start border-primary border-4';
+                        const priorityBadge = notif.priority === 'High' ? 'danger' : notif.priority === 'Medium' ? 'warning' : 'info';
+                        
+                        html += `
+                            <div class="card mb-2 ${typeClass}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="card-title mb-1">${notif.title}</h6>
+                                            <p class="card-text text-muted mb-2">${notif.message}</p>
+                                            <small class="text-muted">${new Date(notif.createdAt).toLocaleString()}</small>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-${priorityBadge}">${notif.priority}</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        ${!notif.isRead ? `<button class="btn btn-sm btn-primary" onclick="markAsRead(${notif.id})">Mark as Read</button>` : ''}
+                                        <button class="btn btn-sm btn-danger" onclick="deleteNotification(${notif.id})">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                $('#notificationsList').html(html);
+                updateUnreadCount();
+            });
+        }
+
+        function updateUnreadCount() {
+            $.get(`/api/notification/unread-count/${currentWalletAddress}`, function(data) {
+                $('#unreadBadge').text(data.unreadCount);
+            });
+        }
+
+        function markAsRead(notificationId) {
+            $.ajax({
+                url: `/api/notification/${notificationId}/read`,
+                type: 'PUT',
+                success: function() {
+                    loadNotifications();
+                }
+            });
+        }
+
+        function markAllAsRead() {
+            $.ajax({
+                url: `/api/notification/mark-all-read/${currentWalletAddress}`,
+                type: 'PUT',
+                success: function() {
+                    loadNotifications();
+                }
+            });
+        }
+
+        function deleteNotification(notificationId) {
+            if (confirm('Delete this notification?')) {
+                $.ajax({
+                    url: `/api/notification/${notificationId}`,
+                    type: 'DELETE',
+                    success: function() {
+                        loadNotifications();
+                    }
+                });
+            }
+        }
+
+        function deleteAllNotifications() {
+            if (confirm('Delete all notifications?')) {
+                $.ajax({
+                    url: `/api/notification/all/${currentWalletAddress}`,
+                    type: 'DELETE',
+                    success: function() {
+                        loadNotifications();
+                    }
+                });
+            }
+        }
+
+        function clearFilters() {
+            $('#statusFilter').val('');
+            $('#typeFilter').val('');
+            loadNotifications();
+        }
+    </script>
+}

@@ -1,0 +1,173 @@
+@page
+@model SearchIndexModel
+@{
+    ViewData["Title"] = "Advanced Search";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-4">Advanced Search & Filtering</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Search Filters -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="searchForm">
+                        <div class="mb-3">
+                            <label class="form-label">Search Term</label>
+                            <input type="text" class="form-control" id="searchTerm" name="searchTerm" placeholder="Product name, code...">
+                            <div id="suggestions" class="list-group mt-2" style="display: none;"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Batch ID</label>
+                            <input type="text" class="form-control" id="batchId" name="batchId">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Product Code</label>
+                            <input type="text" class="form-control" id="productCode" name="productCode">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Manufacturer</label>
+                            <input type="text" class="form-control" id="manufacturerName" name="manufacturerName">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">All Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Transferred">Transferred</option>
+                                <option value="Received">Received</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sort By</label>
+                            <select class="form-select" id="sortBy" name="sortBy">
+                                <option value="CreatedDate">Created Date</option>
+                                <option value="ProductName">Product Name</option>
+                                <option value="Manufacturer">Manufacturer</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                        <button type="reset" class="btn btn-secondary w-100 mt-2">Clear</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Search Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultsContainer">
+                        <p class="text-muted">Enter search criteria and click Search</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#searchTerm').on('input', function() {
+                const term = $(this).val();
+                if (term.length >= 2) {
+                    $.get('/api/search/suggestions?term=' + term, function(data) {
+                        const suggestions = $('#suggestions');
+                        suggestions.empty();
+                        data.forEach(item => {
+                            suggestions.append(`<a href="#" class="list-group-item list-group-item-action">${item}</a>`);
+                        });
+                        suggestions.show();
+                    });
+                } else {
+                    $('#suggestions').hide();
+                }
+            });
+
+            $('#searchForm').on('submit', function(e) {
+                e.preventDefault();
+                const formData = {
+                    searchTerm: $('#searchTerm').val(),
+                    batchId: $('#batchId').val(),
+                    productCode: $('#productCode').val(),
+                    manufacturerName: $('#manufacturerName').val(),
+                    status: $('#status').val(),
+                    startDate: $('#startDate').val() ? new Date($('#startDate').val()) : null,
+                    endDate: $('#endDate').val() ? new Date($('#endDate').val()) : null,
+                    sortBy: $('#sortBy').val(),
+                    pageNumber: 1,
+                    pageSize: 10
+                };
+
+                $.ajax({
+                    url: '/api/search/nfts',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    success: function(result) {
+                        displayResults(result);
+                    },
+                    error: function() {
+                        alert('Search failed');
+                    }
+                });
+            });
+
+            function displayResults(result) {
+                const container = $('#resultsContainer');
+                container.empty();
+
+                if (result.items.length === 0) {
+                    container.html('<p class="text-muted">No results found</p>');
+                    return;
+                }
+
+                let html = `<p class="text-muted">Found ${result.totalCount} results</p>`;
+                html += '<div class="table-responsive"><table class="table table-hover">';
+                html += '<thead><tr><th>Product</th><th>Batch ID</th><th>Manufacturer</th><th>Status</th><th>Created</th><th>Action</th></tr></thead><tbody>';
+
+                result.items.forEach(item => {
+                    html += `<tr>
+                        <td>${item.productName}</td>
+                        <td>${item.batchId}</td>
+                        <td>${item.manufacturer}</td>
+                        <td><span class="badge bg-info">${item.status}</span></td>
+                        <td>${new Date(item.createdDate).toLocaleDateString()}</td>
+                        <td><a href="/nft/${item.id}" class="btn btn-sm btn-primary">View</a></td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                container.html(html);
+            }
+        });
+    </script>
+}

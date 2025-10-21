@@ -1,0 +1,243 @@
+@page
+@model InventoryIndexModel
+@{
+    ViewData["Title"] = "Inventory Management";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-4">Inventory Management</h1>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4" id="summaryCards">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Items</h5>
+                    <h2 id="totalItems">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Quantity</h5>
+                    <h2 id="totalQuantity">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock</h5>
+                    <h2 id="lowStockCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Expiring Soon</h5>
+                    <h2 id="expiringCount">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#locations">Locations</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#alerts">Alerts</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#lowstock">Low Stock</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#expiring">Expiring Items</a>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <div id="locations" class="tab-pane fade show active">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Storage Locations</h5>
+                </div>
+                <div class="card-body">
+                    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addLocationModal">Add Location</button>
+                    <div id="locationsTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="alerts" class="tab-pane fade">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Active Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div id="alertsTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="lowstock" class="tab-pane fade">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Low Stock Items</h5>
+                </div>
+                <div class="card-body">
+                    <div id="lowstockTable"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="expiring" class="tab-pane fade">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Expiring Items (30 days)</h5>
+                </div>
+                <div class="card-body">
+                    <div id="expiringTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Location Modal -->
+<div class="modal fade" id="addLocationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Storage Location</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="locationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Location Name</label>
+                        <input type="text" class="form-control" id="locationName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location Code</label>
+                        <input type="text" class="form-control" id="locationCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control" id="address" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Capacity</label>
+                        <input type="number" class="form-control" id="capacity" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Manager Name</label>
+                        <input type="text" class="form-control" id="managerName" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="saveLocation()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadSummary();
+            loadLocations();
+            loadAlerts();
+            loadLowStock();
+            loadExpiringItems();
+        });
+
+        function loadSummary() {
+            $.get('/api/inventory/summary', function(data) {
+                $('#totalItems').text(data.totalItems);
+                $('#totalQuantity').text(data.totalQuantity);
+                $('#lowStockCount').text(data.lowStockCount);
+                $('#expiringCount').text(data.expiringCount);
+            });
+        }
+
+        function loadLocations() {
+            $.get('/api/inventory/locations', function(data) {
+                let html = '<table class="table table-hover"><thead><tr><th>Name</th><th>Code</th><th>Capacity</th><th>Current Stock</th><th>Manager</th></tr></thead><tbody>';
+                data.forEach(loc => {
+                    html += `<tr><td>${loc.locationName}</td><td>${loc.locationCode}</td><td>${loc.capacity}</td><td>${loc.currentStock}</td><td>${loc.managerName}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                $('#locationsTable').html(html);
+            });
+        }
+
+        function loadAlerts() {
+            $.get('/api/inventory/alerts', function(data) {
+                let html = '<table class="table table-hover"><thead><tr><th>Type</th><th>Severity</th><th>Message</th><th>Date</th></tr></thead><tbody>';
+                data.forEach(alert => {
+                    const severityClass = alert.severity === 'High' ? 'danger' : alert.severity === 'Medium' ? 'warning' : 'info';
+                    html += `<tr><td>${alert.alertType}</td><td><span class="badge bg-${severityClass}">${alert.severity}</span></td><td>${alert.message}</td><td>${new Date(alert.createdDate).toLocaleDateString()}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                $('#alertsTable').html(html);
+            });
+        }
+
+        function loadLowStock() {
+            $.get('/api/inventory/low-stock', function(data) {
+                let html = '<table class="table table-hover"><thead><tr><th>Batch</th><th>Current</th><th>Reorder Level</th><th>Location</th></tr></thead><tbody>';
+                data.forEach(item => {
+                    html += `<tr><td>${item.batch}</td><td>${item.quantity}</td><td>${item.reorderLevel}</td><td>${item.location.locationName}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                $('#lowstockTable').html(html);
+            });
+        }
+
+        function loadExpiringItems() {
+            $.get('/api/inventory/expiring', function(data) {
+                let html = '<table class="table table-hover"><thead><tr><th>Batch</th><th>Expiry Date</th><th>Days Left</th><th>Quantity</th><th>Location</th></tr></thead><tbody>';
+                data.forEach(item => {
+                    const daysLeft = Math.ceil((new Date(item.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                    html += `<tr><td>${item.batch}</td><td>${new Date(item.expiryDate).toLocaleDateString()}</td><td>${daysLeft}</td><td>${item.quantity}</td><td>${item.location.locationName}</td></tr>`;
+                });
+                html += '</tbody></table>';
+                $('#expiringTable').html(html);
+            });
+        }
+
+        function saveLocation() {
+            const location = {
+                locationName: $('#locationName').val(),
+                locationCode: $('#locationCode').val(),
+                address: $('#address').val(),
+                capacity: parseInt($('#capacity').val()),
+                managerName: $('#managerName').val()
+            };
+
+            $.ajax({
+                url: '/api/inventory/locations',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(location),
+                success: function() {
+                    alert('Location added successfully');
+                    $('#addLocationModal').modal('hide');
+                    $('#locationForm')[0].reset();
+                    loadLocations();
+                }
+            });
+        }
+    </script>
+}

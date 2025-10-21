@@ -1,0 +1,156 @@
+@page
+@model AuditTrailModel
+@{
+    ViewData["Title"] = "Audit Trail";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="mb-4">Audit Trail & Activity Log</h1>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Entity Type</label>
+                        <select class="form-select" id="entityTypeFilter">
+                            <option value="">All Types</option>
+                            <option value="NFT">NFT</option>
+                            <option value="TransferRequest">Transfer Request</option>
+                            <option value="InventoryItem">Inventory Item</option>
+                            <option value="User">User</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Action</label>
+                        <select class="form-select" id="actionFilter">
+                            <option value="">All Actions</option>
+                            <option value="Create">Create</option>
+                            <option value="Update">Update</option>
+                            <option value="Delete">Delete</option>
+                            <option value="Approve">Approve</option>
+                            <option value="Reject">Reject</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                    <button class="btn btn-primary w-100 mb-2" onclick="loadAuditLogs()">Filter</button>
+                    <button class="btn btn-secondary w-100" onclick="clearFilters()">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Audit Logs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="auditTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Entity</th>
+                                    <th>Action</th>
+                                    <th>Performed By</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Audit Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            $('#startDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
+            $('#endDate').val(today.toISOString().split('T')[0]);
+            
+            loadAuditLogs();
+        });
+
+        function loadAuditLogs() {
+            const entityType = $('#entityTypeFilter').val();
+            const action = $('#actionFilter').val();
+            const startDate = $('#startDate').val();
+            const endDate = $('#endDate').val();
+
+            let url = '/api/audit/logs?';
+            if (entityType) url += `entityType=${entityType}&`;
+            if (action) url += `action=${action}&`;
+            if (startDate) url += `startDate=${startDate}&`;
+            if (endDate) url += `endDate=${endDate}`;
+
+            $.get(url, function(data) {
+                let html = '';
+                data.forEach(log => {
+                    const statusBadge = log.status === 'Success' ? 'success' : 'danger';
+                    html += `<tr>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${log.entityType}</td>
+                        <td><span class="badge bg-info">${log.action}</span></td>
+                        <td>${log.performedByName || log.performedBy}</td>
+                        <td><span class="badge bg-${statusBadge}">${log.status}</span></td>
+                        <td><button class="btn btn-sm btn-primary" onclick="showDetails(${log.id}, '${log.entityType}', ${log.entityId})">View</button></td>
+                    </tr>`;
+                });
+                $('#auditTableBody').html(html);
+            });
+        }
+
+        function showDetails(logId, entityType, entityId) {
+            $.get(`/api/audit/entity/${entityType}/${entityId}/history`, function(history) {
+                let html = '<div class="mb-3"><h6>Change History</h6>';
+                html += '<table class="table table-sm"><thead><tr><th>Version</th><th>Date</th><th>By</th></tr></thead><tbody>';
+                history.forEach(h => {
+                    html += `<tr><td>v${h.version}</td><td>${new Date(h.createdDate).toLocaleString()}</td><td>${h.createdBy}</td></tr>`;
+                });
+                html += '</tbody></table></div>';
+                $('#detailsContent').html(html);
+                new bootstrap.Modal(document.getElementById('detailsModal')).show();
+            });
+        }
+
+        function clearFilters() {
+            $('#entityTypeFilter').val('');
+            $('#actionFilter').val('');
+            loadAuditLogs();
+        }
+    </script>
+}

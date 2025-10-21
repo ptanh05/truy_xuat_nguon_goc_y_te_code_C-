@@ -1,0 +1,68 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Trang Chủ";
+}
+
+<div class="container mt-5">
+    <div class="row mb-5">
+        <div class="col-lg-8">
+            <h1 class="display-4">PharmaDNA</h1>
+            <p class="lead">Hệ Thống Truy Xuất Nguồn Gốc Thuốc Sử Dụng Blockchain & NFT</p>
+            <p>Đảm bảo tính minh bạch, xác thực và quản lý toàn diện chuỗi cung ứng dược phẩm.</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Kết Nối Ví</h5>
+                    <p class="card-text">Kết nối ví Web3 của bạn để bắt đầu</p>
+                    <button class="btn btn-primary w-100" id="connectWalletBtn">
+                        <i class="fas fa-link"></i> Kết Nối Ví
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-industry fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Nhà Sản Xuất</h5>
+                    <p class="card-text">Tạo và quản lý NFT cho lô thuốc</p>
+                    <a href="/manufacturer" class="btn btn-primary btn-sm">Truy Cập</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-truck fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Nhà Phân Phối</h5>
+                    <p class="card-text">Quản lý chuyển lô thuốc</p>
+                    <a href="/distributor" class="btn btn-success btn-sm">Truy Cập</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-hospital fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Nhà Thuốc</h5>
+                    <p class="card-text">Tra cứu và xác minh thuốc</p>
+                    <a href="/pharmacy" class="btn btn-info btn-sm">Truy Cập</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('connectWalletBtn').addEventListener('click', function() {
+            // Placeholder for wallet connection logic
+            alert('Kết nối ví sẽ được triển khai');
+        });
+    </script>
+}

@@ -1,0 +1,229 @@
+@page
+@model BatchOperationsModel
+@{
+    ViewData["Title"] = "Batch Operations";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Batch Operations</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadNFTModal">
+                    <i class="fas fa-upload"></i> Create NFT Batch
+                </button>
+                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#uploadPriceModal">
+                    <i class="fas fa-tag"></i> Update Price Batch
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Operations Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5>Recent Batch Operations</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Operation Type</th>
+                            <th>File Name</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Records</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload NFT Batch Modal -->
+<div class="modal fade" id="uploadNFTModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create NFT Batch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>CSV Format:</strong> ProductName, Manufacturer, BatchNumber, ExpiryDate, Quantity, Price
+                </div>
+                <form id="nftBatchForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="nftBatchFile" accept=".csv" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadNFTBatch()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Price Batch Modal -->
+<div class="modal fade" id="uploadPriceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Price Batch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>CSV Format:</strong> NFTId, NewPrice
+                </div>
+                <form id="priceBatchForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="priceBatchFile" accept=".csv" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadPriceBatch()">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function loadBatchOperations() {
+            try {
+                const response = await fetch('/api/batchoperation?pageNumber=1&pageSize=10');
+                const batches = await response.json();
+                
+                const tbody = document.getElementById('batchTableBody');
+                tbody.innerHTML = '';
+
+                batches.forEach(batch => {
+                    const statusBadge = `<span class="badge bg-${getStatusColor(batch.status)}">${batch.status}</span>`;
+                    const row = `
+                        <tr>
+                            <td>${batch.id}</td>
+                            <td>${batch.operationType}</td>
+                            <td>${batch.fileName}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar" style="width: ${batch.progressPercentage}%">
+                                        ${batch.progressPercentage.toFixed(0)}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <small>
+                                    Processed: ${batch.processedRecords}<br>
+                                    Failed: ${batch.failedRecords}
+                                </small>
+                            </td>
+                            <td>${new Date(batch.createdAt).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-info" onclick="viewBatchDetails(${batch.id})">
+                                    <i class="fas fa-eye"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            } catch (error) {
+                console.error('Error loading batch operations:', error);
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'Completed': return 'success';
+                case 'Processing': return 'warning';
+                case 'Failed': return 'danger';
+                default: return 'secondary';
+            }
+        }
+
+        async function uploadNFTBatch() {
+            const file = document.getElementById('nftBatchFile').files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', 1); // Replace with actual user ID
+
+            try {
+                const response = await fetch('/api/batchoperation/create-nft-batch', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('Batch operation started successfully');
+                    document.getElementById('nftBatchForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('uploadNFTModal')).hide();
+                    loadBatchOperations();
+                }
+            } catch (error) {
+                console.error('Error uploading batch:', error);
+                alert('Failed to upload batch');
+            }
+        }
+
+        async function uploadPriceBatch() {
+            const file = document.getElementById('priceBatchFile').files[0];
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('userId', 1); // Replace with actual user ID
+
+            try {
+                const response = await fetch('/api/batchoperation/update-price-batch', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('Batch operation started successfully');
+                    document.getElementById('priceBatchForm').reset();
+                    bootstrap.Modal.getInstance(document.getElementById('uploadPriceModal')).hide();
+                    loadBatchOperations();
+                }
+            } catch (error) {
+                console.error('Error uploading batch:', error);
+                alert('Failed to upload batch');
+            }
+        }
+
+        function viewBatchDetails(batchId) {
+            alert('Batch details view coming soon');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBatchOperations();
+            setInterval(loadBatchOperations, 5000); // Refresh every 5 seconds
+        });
+    </script>
+}
