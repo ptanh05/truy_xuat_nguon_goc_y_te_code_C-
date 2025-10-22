@@ -9,7 +9,6 @@ namespace PharmaDNA.Services
         private readonly ILogger<PinataService> _logger;
         private readonly HttpClient _httpClient;
         private const string PINATA_API_URL = "https://api.pinata.cloud";
-        private const string PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs";
 
         public PinataService(IConfiguration configuration, ILogger<PinataService> logger)
         {
@@ -21,8 +20,16 @@ namespace PharmaDNA.Services
         private void SetAuthHeaders()
         {
             var jwtToken = _configuration["Pinata:JwtToken"];
-            _httpClient.DefaultRequestHeaders.Authorization = 
-                new AuthenticationHeaderValue("Bearer", jwtToken);
+            if (!string.IsNullOrEmpty(jwtToken))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new AuthenticationHeaderValue("Bearer", jwtToken);
+            }
+        }
+
+        private string GetGatewayUrl()
+        {
+            return _configuration["Pinata:GatewayUrl"] ?? "https://gateway.pinata.cloud/ipfs";
         }
 
         public async Task<string> UploadMetadataAsync(Dictionary<string, object> metadata)
@@ -110,7 +117,8 @@ namespace PharmaDNA.Services
             {
                 _logger.LogInformation($"Retrieving metadata from IPFS: {ipfsHash}");
 
-                var response = await _httpClient.GetAsync($"{PINATA_GATEWAY}/{ipfsHash}");
+                var gateway = GetGatewayUrl();
+                var response = await _httpClient.GetAsync($"{gateway}/{ipfsHash}");
 
                 if (response.IsSuccessStatusCode)
                 {

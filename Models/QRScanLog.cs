@@ -9,6 +9,9 @@ namespace PharmaDNA.Models
         public DateTime ScannedAt { get; set; } = DateTime.UtcNow;
         public string? IPAddress { get; set; }
         public string? UserAgent { get; set; }
+        public string? ScannedBy { get; set; }
+        public string? ScannedFrom { get; set; }
+        public DateTime? ScanDate { get; set; }
         
         // Navigation properties
         public QRCodeData QRCodeData { get; set; } = null!;

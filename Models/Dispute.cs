@@ -13,6 +13,11 @@ namespace PharmaDNA.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ResolvedAt { get; set; }
+        public string? DisputeType { get; set; }
+        public decimal? CompensationAmount { get; set; }
+        public string? ReportedByUser { get; set; }
+        public string? ReportedByUserId { get; set; }
+        public string? AssignedToUserId { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

@@ -10,5 +10,9 @@ namespace PharmaDNA.Models
         public string? NewValue { get; set; }
         public string ChangedByAddress { get; set; } = string.Empty;
         public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
+        public int? Version { get; set; }
+        public string? EntityData { get; set; }
+        public string? CreatedBy { get; set; }
+        public DateTime? CreatedDate { get; set; }
     }
 }

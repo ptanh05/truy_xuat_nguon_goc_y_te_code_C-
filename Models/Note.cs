@@ -8,6 +8,14 @@ namespace PharmaDNA.Models
         public string AuthorAddress { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public string? EntityType { get; set; }
+        public int? EntityId { get; set; }
+        public bool? IsArchived { get; set; }
+        public bool? IsCompleted { get; set; }
+        public string? Title { get; set; }
+        public string? Category { get; set; }
+        public string? Priority { get; set; }
+        public DateTime? DueDate { get; set; }
         
         // Navigation properties
         public Comment Comment { get; set; } = null!;

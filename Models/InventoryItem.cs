@@ -9,6 +9,9 @@ namespace PharmaDNA.Models
         public decimal? Price { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public int? ReorderLevel { get; set; }
+        public string? Batch { get; set; }
+        public DateTime? ExpiryDate { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

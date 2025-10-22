@@ -9,6 +9,13 @@ namespace PharmaDNA.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; } = true;
+        public string? QRCodeContent { get; set; }
+        public string? QRCodeImageUrl { get; set; }
+        public string? BarcodeContent { get; set; }
+        public string? BarcodeImageUrl { get; set; }
+        public string? Format { get; set; }
+        public int? ScanCount { get; set; }
+        public DateTime? LastScannedDate { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

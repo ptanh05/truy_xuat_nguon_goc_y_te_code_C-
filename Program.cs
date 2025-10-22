@@ -4,6 +4,29 @@ using PharmaDNA.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Environment variable overrides for external services (Infura, Pinata)
+// Prefer explicit env vars if present to avoid changing appsettings files across machines
+var infuraEndpoint = Environment.GetEnvironmentVariable("INFURA_ENDPOINT");
+var infuraProjectId = Environment.GetEnvironmentVariable("INFURA_PROJECT_ID");
+if (!string.IsNullOrWhiteSpace(infuraEndpoint))
+{
+    builder.Configuration["Blockchain:RpcUrl"] = infuraEndpoint;
+}
+else if (!string.IsNullOrWhiteSpace(infuraProjectId))
+{
+    // Fallback to standard Infura mainnet endpoint format if only ProjectId is provided
+    builder.Configuration["Blockchain:RpcUrl"] = $"https://mainnet.infura.io/v3/{infuraProjectId}";
+}
+
+var pinataApiKey = Environment.GetEnvironmentVariable("PINATA_API_KEY");
+var pinataApiSecret = Environment.GetEnvironmentVariable("PINATA_SECRET_API_KEY");
+var pinataJwt = Environment.GetEnvironmentVariable("PINATA_JWT");
+var pinataGateway = Environment.GetEnvironmentVariable("PINATA_GATEWAY");
+if (!string.IsNullOrWhiteSpace(pinataApiKey)) builder.Configuration["Pinata:ApiKey"] = pinataApiKey;
+if (!string.IsNullOrWhiteSpace(pinataApiSecret)) builder.Configuration["Pinata:ApiSecret"] = pinataApiSecret;
+if (!string.IsNullOrWhiteSpace(pinataJwt)) builder.Configuration["Pinata:JwtToken"] = pinataJwt;
+if (!string.IsNullOrWhiteSpace(pinataGateway)) builder.Configuration["Pinata:GatewayUrl"] = pinataGateway;
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
