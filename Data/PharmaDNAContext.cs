@@ -15,6 +15,32 @@ namespace PharmaDNA.Data
         public DbSet<Milestone> Milestones { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<User> Users { get; set; }
+        
+        // Additional DbSets needed by services
+        public DbSet<Dispute> Disputes { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<BatchOperation> BatchOperations { get; set; }
+        public DbSet<BatchOperationDetail> BatchOperationDetails { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<EntityHistory> EntityHistories { get; set; }
+        public DbSet<ApiKey> ApiKeys { get; set; }
+        public DbSet<ApiKeyUsage> ApiKeyUsages { get; set; }
+        public DbSet<InventoryLocation> InventoryLocations { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
+        public DbSet<InventoryMovement> InventoryMovements { get; set; }
+        public DbSet<InventoryAlert> InventoryAlerts { get; set; }
+        public DbSet<DisputeComment> DisputeComments { get; set; }
+        public DbSet<DisputeResolution> DisputeResolutions { get; set; }
+        public DbSet<CommentLike> CommentLikes { get; set; }
+        public DbSet<Note> Notes { get; set; }
+        public DbSet<QRCodeData> QRCodeData { get; set; }
+        public DbSet<QRScanLog> QRScanLog { get; set; }
+        public DbSet<AlertRule> AlertRules { get; set; }
+        public DbSet<EmailTemplate> EmailTemplates { get; set; }
+        public DbSet<ReportData> ReportData { get; set; }
+        public DbSet<AnomalyAlert> AnomalyAlerts { get; set; }
+        public DbSet<UserLoginHistory> UserLoginHistories { get; set; }
+        public DbSet<Attachment> Attachments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -12,6 +12,18 @@ namespace PharmaDNA.Models
         public decimal Amount { get; set; }
         public string Category { get; set; }
         public string Details { get; set; } // JSON
+        
+        // Additional properties needed by ReportService
+        public int TotalNFTsCreated { get; set; }
+        public int TotalTransfers { get; set; }
+        public int SuccessfulTransfers { get; set; }
+        public int RejectedTransfers { get; set; }
+        public int PendingTransfers { get; set; }
+        public double SuccessRate { get; set; }
+        public string TransfersByManufacturer { get; set; } = string.Empty; // JSON
+        public string TransfersByStatus { get; set; } = string.Empty; // JSON
+        public string DailyTransfers { get; set; } = string.Empty; // JSON
+        public string TopProducts { get; set; } = string.Empty; // JSON
     }
 
     public class DashboardMetrics
@@ -39,15 +51,6 @@ namespace PharmaDNA.Models
         public decimal Percentage { get; set; }
     }
 
-    public class AnomalyAlert
-    {
-        public int Id { get; set; }
-        public string AlertType { get; set; } // UnusualActivity, PriceSpike, HighDispute, etc.
-        public string Description { get; set; }
-        public DateTime DetectedAt { get; set; }
-        public string Severity { get; set; } // Low, Medium, High, Critical
-        public bool IsResolved { get; set; }
-    }
 
     public class PredictiveAnalysis
     {

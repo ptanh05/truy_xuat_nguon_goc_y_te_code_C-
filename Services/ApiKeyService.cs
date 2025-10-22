@@ -60,11 +60,11 @@ namespace PharmaDNA.Services
         public async Task<bool> ValidateApiKeyAsync(string key, string secret)
         {
             var apiKey = await _context.ApiKeys
-                .FirstOrDefaultAsync(k => k.Key == key && k.IsActive);
+                .FirstOrDefaultAsync(k => k.KeyValue == key && k.IsActive);
 
             if (apiKey == null) return false;
 
-            var isValid = BCrypt.Net.BCrypt.Verify(secret, apiKey.Secret);
+            var isValid = BCrypt.Net.BCrypt.Verify(secret, apiKey.KeyValue);
             if (isValid)
             {
                 apiKey.LastUsedAt = DateTime.UtcNow;

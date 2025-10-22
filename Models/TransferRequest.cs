@@ -14,6 +14,15 @@ namespace PharmaDNA.Models
         public DateTime ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        // Additional properties needed by services
+        public DateTime? RequestDate { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string? FromAddress { get; set; }
+        public string? ToAddress { get; set; }
+        public string? FromUserId { get; set; }
+        public string? ToUserId { get; set; }
+        public int? Quantity { get; set; }
 
         // Navigation properties
         public NFT NFT { get; set; }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using PharmaDNA.Data;
 using PharmaDNA.Models;
 using QRCoder;
+using QRCodeData = PharmaDNA.Models.QRCodeData;
 
 namespace PharmaDNA.Services
 {
@@ -21,7 +22,7 @@ namespace PharmaDNA.Services
         public async Task<QRCodeData> GenerateQRCodeAsync(int nftId)
         {
             var nft = await _context.NFTs.FindAsync(nftId);
-            if (nft == null) return null;
+            if (nft == null) return new QRCodeData();
 
             var existingQR = await _context.QRCodeData
                 .FirstOrDefaultAsync(q => q.NFTId == nftId && q.Format == "QR");
@@ -34,7 +35,7 @@ namespace PharmaDNA.Services
             using (var qrGenerator = new QRCodeGenerator())
             {
                 var qrCodeData = qrGenerator.CreateQrCode(qrContent, QRCodeGenerator.ECCLevel.Q);
-                using (var qrCode = new QRCode(qrCodeData))
+                using (var qrCode = new QRCoder.QRCode(qrCodeData))
                 {
                     var qrImage = qrCode.GetGraphic(20);
                     var imageBase64 = Convert.ToBase64String(qrImage);
