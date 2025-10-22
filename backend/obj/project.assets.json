@@ -6183,11 +6183,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\PharmaDNA.csproj",
+      "projectUniqueName": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\backend\\PharmaDNA.csproj",
       "projectName": "PharmaDNA",
-      "projectPath": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\PharmaDNA.csproj",
+      "projectPath": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\backend\\PharmaDNA.csproj",
       "packagesPath": "C:\\Users\\anh01\\.nuget\\packages\\",
-      "outputPath": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\obj\\",
+      "outputPath": "D:\\New folder\\truy_xuat_nguon_goc_y_te_code_C-\\backend\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

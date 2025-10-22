@@ -8,3 +8,13 @@ D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\obj\Debug\net8.0\PharmaDNA.MvcApp
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cache
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cs
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\obj\Debug\net8.0\PharmaDNA.sourcelink.json
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.csproj.AssemblyReference.cache
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.GeneratedMSBuildEditorConfig.editorconfig
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.AssemblyInfoInputs.cache
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.AssemblyInfo.cs
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.csproj.CoreCompileInputs.cache
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.MvcApplicationPartsAssemblyInfo.cache
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cache
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cs
+D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.sourcelink.json

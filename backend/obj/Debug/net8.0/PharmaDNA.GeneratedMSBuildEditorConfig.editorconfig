@@ -9,105 +9,105 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = PharmaDNA
 build_property.RootNamespace = PharmaDNA
-build_property.ProjectDir = D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\
+build_property.ProjectDir = D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = D:\New folder\truy_xuat_nguon_goc_y_te_code_C-
+build_property.MSBuildProjectDirectory = D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Admin/Dashboard.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Admin/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cRGFzaGJvYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Admin/UserManagement.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Admin/UserManagement.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cVXNlck1hbmFnZW1lbnQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Analytics/Dashboard.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Analytics/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQW5hbHl0aWNzXERhc2hib2FyZC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Audit/Trail.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Audit/Trail.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQXVkaXRcVHJhaWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Batch/Operations.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Batch/Operations.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQmF0Y2hcT3BlcmF0aW9ucy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Comments/Section.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Comments/Section.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ29tbWVudHNcU2VjdGlvbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Dashboard.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Developer/Portal.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Developer/Portal.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGV2ZWxvcGVyXFBvcnRhbC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Disputes/Dashboard.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Disputes/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGlzcHV0ZXNcRGFzaGJvYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Index.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Inventory/Index.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Inventory/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW52ZW50b3J5XEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Login.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTG9naW4uY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Manufacturer/Create.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Manufacturer/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTWFudWZhY3R1cmVyXENyZWF0ZS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Manufacturer/Index.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Manufacturer/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTWFudWZhY3R1cmVyXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Notifications/AlertRules.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Notifications/AlertRules.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTm90aWZpY2F0aW9uc1xBbGVydFJ1bGVzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Notifications/Center.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Notifications/Center.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTm90aWZpY2F0aW9uc1xDZW50ZXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Pharmacy/Index.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Pharmacy/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUGhhcm1hY3lcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/QRCode/Generator.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/QRCode/Generator.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUVJDb2RlXEdlbmVyYXRvci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/QRCode/Scanner.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/QRCode/Scanner.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUVJDb2RlXFNjYW5uZXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Reports/Dashboard.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Reports/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUmVwb3J0c1xEYXNoYm9hcmQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Search/Index.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Search/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2VhcmNoXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/Shared/_Layout.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/Pages/_ViewImports.cshtml]
+[D:/New folder/truy_xuat_nguon_goc_y_te_code_C-/backend/Pages/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
