@@ -15,5 +15,8 @@ namespace PharmaDNA.Models
         
         // Navigation properties
         public ICollection<InventoryItem> Items { get; set; } = new List<InventoryItem>();
+        public ICollection<InventoryItem> InventoryItems { get; set; } = new List<InventoryItem>();
+        public DateTime? UpdatedDate { get; set; }
+        public int? NFTId { get; set; }
     }
 }

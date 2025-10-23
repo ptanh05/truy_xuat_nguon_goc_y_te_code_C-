@@ -7,11 +7,11 @@ namespace PharmaDNA.Models
     {
         public int Id { get; set; }
         public DateTime Date { get; set; }
-        public string MetricType { get; set; } // NFTCreated, TransferCompleted, InventoryMovement, etc.
+        public string MetricType { get; set; } = string.Empty; // NFTCreated, TransferCompleted, InventoryMovement, etc.
         public int Value { get; set; }
         public decimal Amount { get; set; }
-        public string Category { get; set; }
-        public string Details { get; set; } // JSON
+        public string Category { get; set; } = string.Empty;
+        public string Details { get; set; } = string.Empty; // JSON
         
         // Additional properties needed by ReportService
         public int TotalNFTsCreated { get; set; }
@@ -46,7 +46,7 @@ namespace PharmaDNA.Models
 
     public class CategoryAnalysis
     {
-        public string Category { get; set; }
+        public string Category { get; set; } = string.Empty;
         public int Count { get; set; }
         public decimal Percentage { get; set; }
     }

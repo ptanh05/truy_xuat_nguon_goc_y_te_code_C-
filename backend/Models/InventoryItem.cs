@@ -12,6 +12,7 @@ namespace PharmaDNA.Models
         public int? ReorderLevel { get; set; }
         public string? Batch { get; set; }
         public DateTime? ExpiryDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

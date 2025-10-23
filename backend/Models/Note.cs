@@ -16,6 +16,7 @@ namespace PharmaDNA.Models
         public string? Category { get; set; }
         public string? Priority { get; set; }
         public DateTime? DueDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
         
         // Navigation properties
         public Comment Comment { get; set; } = null!;

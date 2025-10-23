@@ -12,5 +12,11 @@ namespace PharmaDNA.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public string? IPAddress { get; set; }
         public string? UserAgent { get; set; }
+        public string? PerformedBy { get; set; }
+        public string? PerformedByName { get; set; }
+        public string? Changes { get; set; }
+        public string? Reason { get; set; }
+        public string? Status { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

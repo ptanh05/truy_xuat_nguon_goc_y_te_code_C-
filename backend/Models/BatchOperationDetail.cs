@@ -8,6 +8,8 @@ namespace PharmaDNA.Models
         public string Status { get; set; } = string.Empty; // pending, success, failed
         public string? ErrorMessage { get; set; }
         public DateTime ProcessedAt { get; set; }
+        public int? RecordNumber { get; set; }
+        public string? Data { get; set; }
         
         // Navigation properties
         public BatchOperation BatchOperation { get; set; } = null!;

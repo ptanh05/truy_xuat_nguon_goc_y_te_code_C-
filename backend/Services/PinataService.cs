@@ -208,7 +208,7 @@ namespace PharmaDNA.Services
             }
         }
 
-        public async Task<PinataUsageResponse> GetUsageAsync()
+        public async Task<object> GetUsageAsync()
         {
             try
             {
@@ -231,6 +231,18 @@ namespace PharmaDNA.Services
                 _logger.LogError($"Error getting Pinata usage: {ex.Message}");
                 throw;
             }
+        }
+
+        public async Task<string> UploadMultipleFilesAsync(IEnumerable<IFormFile> files, Dictionary<string, string> metadata)
+        {
+            // Implement multiple file upload
+            var results = new List<string>();
+            foreach (var file in files)
+            {
+                var result = await UploadFileAsync(file, metadata);
+                results.Add(result);
+            }
+            return string.Join(",", results);
         }
     }
 

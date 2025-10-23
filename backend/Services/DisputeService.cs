@@ -65,7 +65,7 @@ namespace PharmaDNA.Services
         public async Task<IEnumerable<Dispute>> GetDisputesByUserAsync(int userId, int pageNumber = 1, int pageSize = 10)
         {
             return await _context.Disputes
-                .Where(d => d.ReportedByUserId == userId)
+                .Where(d => d.ReportedByUserId == userId.ToString())
                 .Include(d => d.NFT)
                 .OrderByDescending(d => d.CreatedAt)
                 .Skip((pageNumber - 1) * pageSize)
@@ -91,7 +91,7 @@ namespace PharmaDNA.Services
             var dispute = await _context.Disputes.FindAsync(disputeId);
             if (dispute == null) return false;
 
-            dispute.AssignedToUserId = userId;
+            dispute.AssignedToUserId = userId.ToString();
             dispute.Status = "InProgress";
             await _context.SaveChangesAsync();
             return true;
@@ -109,7 +109,7 @@ namespace PharmaDNA.Services
             var disputeComment = new DisputeComment
             {
                 DisputeId = disputeId,
-                UserId = userId,
+                UserId = userId.ToString(),
                 Comment = comment,
                 IsInternal = isInternal,
                 CreatedAt = DateTime.UtcNow
@@ -181,7 +181,7 @@ namespace PharmaDNA.Services
                 OpenDisputes = openDisputes,
                 ResolvedDisputes = resolvedDisputes,
                 ResolutionRate = totalDisputes > 0 ? (double)resolvedDisputes / totalDisputes * 100 : 0,
-                TotalCompensation = totalCompensation
+                TotalCompensation = totalCompensation ?? 0
             };
         }
 

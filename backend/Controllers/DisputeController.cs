@@ -25,7 +25,7 @@ namespace PharmaDNA.Controllers
             {
                 NFTId = request.NFTId,
                 ReportedByUserId = request.ReportedByUserId,
-                DisputeType = request.DisputeType,
+                DisputeType = "General",
                 Title = request.Title,
                 Description = request.Description,
                 Priority = request.Priority ?? "Medium"
@@ -75,7 +75,7 @@ namespace PharmaDNA.Controllers
         [HttpPut("{disputeId}/assign")]
         public async Task<IActionResult> AssignDispute(int disputeId, [FromBody] AssignDisputeRequest request)
         {
-            var result = await _disputeService.AssignDisputeAsync(disputeId, request.UserId);
+            var result = await _disputeService.AssignDisputeAsync(disputeId, int.Parse(request.UserId ?? "0"));
             if (!result) return NotFound();
             return Ok(new { message = "Dispute assigned successfully" });
         }
@@ -83,7 +83,7 @@ namespace PharmaDNA.Controllers
         [HttpPost("{disputeId}/comments")]
         public async Task<IActionResult> AddComment(int disputeId, [FromBody] AddCommentRequest request)
         {
-            var result = await _disputeService.AddCommentAsync(disputeId, request.UserId, request.Comment, request.IsInternal);
+            var result = await _disputeService.AddCommentAsync(disputeId, int.Parse(request.UserId ?? "0"), request.Content, request.IsInternal ?? false);
             if (!result) return BadRequest();
             return Ok(new { message = "Comment added successfully" });
         }

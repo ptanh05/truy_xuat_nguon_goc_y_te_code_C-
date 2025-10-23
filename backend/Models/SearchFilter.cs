@@ -5,14 +5,14 @@ namespace PharmaDNA.Models
 {
     public class SearchFilter
     {
-        public string SearchTerm { get; set; }
-        public string BatchId { get; set; }
-        public string ProductCode { get; set; }
-        public string ManufacturerName { get; set; }
-        public string Status { get; set; }
+        public string SearchTerm { get; set; } = string.Empty;
+        public string BatchId { get; set; } = string.Empty;
+        public string ProductCode { get; set; } = string.Empty;
+        public string ManufacturerName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public string ProductType { get; set; }
+        public string ProductType { get; set; } = string.Empty;
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
         public string SortBy { get; set; } = "CreatedDate";

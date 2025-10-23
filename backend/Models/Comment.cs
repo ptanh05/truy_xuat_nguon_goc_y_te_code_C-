@@ -9,6 +9,14 @@ namespace PharmaDNA.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public bool IsDeleted { get; set; } = false;
+        public string? EntityType { get; set; }
+        public int? EntityId { get; set; }
+        public int? ParentCommentId { get; set; }
+        public ICollection<Comment> Replies { get; set; } = new List<Comment>();
+        public DateTime? UpdatedDate { get; set; }
+        public bool? IsEdited { get; set; }
+        public int LikeCount { get; set; }
+        public DateTime? CreatedDate { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

@@ -13,5 +13,9 @@ namespace PharmaDNA.Models
         public int DisputeCount { get; set; }
         public double DisputeResolutionRate { get; set; }
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        public int TotalCreated { get; set; }
+        public int TotalTransferred { get; set; }
+        public int CurrentStock { get; set; }
+        public double TransferRate { get; set; }
     }
 }

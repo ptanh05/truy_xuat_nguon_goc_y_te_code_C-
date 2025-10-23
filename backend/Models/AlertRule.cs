@@ -11,5 +11,9 @@ namespace PharmaDNA.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public string? TriggerType { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public string? NotificationChannels { get; set; }
+        public string? RuleName { get; set; }
+        public string? NotificationType { get; set; }
     }
 }

@@ -35,8 +35,8 @@ namespace PharmaDNA.Services
                 TotalNFTs = totalNFTs,
                 TotalTransfers = totalTransfers,
                 ActiveUsers = activeUsers,
-                TotalValue = totalValue ?? 0,
-                AverageTransferTime = avgTransferTime ?? 0,
+                TotalValue = (decimal)(totalValue ?? 0),
+                AverageTransferTime = avgTransferTime,
                 DisputeCount = disputes,
                 DisputeResolutionRate = disputes > 0 ? (double)resolvedDisputes / disputes * 100 : 0
             };
@@ -52,7 +52,7 @@ namespace PharmaDNA.Services
                 {
                     Date = g.Key,
                     Count = g.Count(),
-                    Amount = g.Sum(n => n.Price * n.Quantity)
+                    Amount = g.Sum(n => (n.Price ?? 0) * (n.Quantity ?? 0))
                 })
                 .OrderBy(t => t.Date)
                 .ToListAsync();
@@ -68,7 +68,7 @@ namespace PharmaDNA.Services
                 {
                     Date = g.Key,
                     Count = g.Count(),
-                    Amount = g.Sum(t => t.NFT.Price * t.Quantity)
+                    Amount = g.Sum(t => (t.NFT.Price ?? 0) * (t.Quantity ?? 0))
                 })
                 .OrderBy(t => t.Date)
                 .ToListAsync();
@@ -84,7 +84,7 @@ namespace PharmaDNA.Services
                 {
                     Date = g.Key,
                     Count = g.Count(),
-                    Amount = g.Sum(t => t.NFT.Price * t.Quantity)
+                    Amount = g.Sum(t => (t.NFT.Price ?? 0) * (t.Quantity ?? 0))
                 })
                 .OrderBy(t => t.Date)
                 .ToListAsync();
@@ -128,8 +128,8 @@ namespace PharmaDNA.Services
                 .Select(g => new CategoryAnalysis
                 {
                     Category = g.Key,
-                    Count = g.Sum(i => i.Quantity),
-                    Percentage = (decimal)g.Sum(i => i.Quantity) / total * 100
+                    Count = g.Sum(i => i.Quantity ?? 0),
+                    Percentage = (decimal)g.Sum(i => i.Quantity ?? 0) / (total ?? 0) * 100
                 })
                 .OrderByDescending(c => c.Count)
                 .ToListAsync();

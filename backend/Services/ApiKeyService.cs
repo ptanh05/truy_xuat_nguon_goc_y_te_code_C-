@@ -26,7 +26,7 @@ namespace PharmaDNA.Services
 
             var apiKey = new ApiKey
             {
-                UserId = userId,
+                UserId = userId.ToString(),
                 Key = key,
                 Secret = HashSecret(secret),
                 Name = name,
@@ -52,7 +52,7 @@ namespace PharmaDNA.Services
         public async Task<IEnumerable<ApiKey>> GetUserApiKeysAsync(int userId)
         {
             return await _context.ApiKeys
-                .Where(k => k.UserId == userId)
+                .Where(k => k.UserId == userId.ToString())
                 .OrderByDescending(k => k.CreatedAt)
                 .ToListAsync();
         }
@@ -92,7 +92,7 @@ namespace PharmaDNA.Services
                 Endpoint = endpoint,
                 Method = method,
                 StatusCode = statusCode,
-                ResponseTimeMs = responseTimeMs,
+                ResponseTimeMs = (int)responseTimeMs,
                 IpAddress = ipAddress,
                 UsedAt = DateTime.UtcNow
             };

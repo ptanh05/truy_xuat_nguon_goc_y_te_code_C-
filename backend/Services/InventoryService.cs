@@ -174,7 +174,7 @@ namespace PharmaDNA.Services
                     }
                 }
 
-                var daysUntilExpiry = (item.ExpiryDate - DateTime.UtcNow).TotalDays;
+                var daysUntilExpiry = item.ExpiryDate.HasValue ? (item.ExpiryDate.Value - DateTime.UtcNow).TotalDays : 0;
                 if (daysUntilExpiry <= 30 && daysUntilExpiry > 0)
                 {
                     var existingAlert = await _context.InventoryAlerts
@@ -217,7 +217,7 @@ namespace PharmaDNA.Services
             var totalQuantity = await _context.InventoryItems.SumAsync(i => i.Quantity);
             var lowStockCount = await _context.InventoryItems.CountAsync(i => i.Quantity <= i.ReorderLevel);
             var expiringCount = await _context.InventoryItems
-                .CountAsync(i => (i.ExpiryDate - DateTime.UtcNow).TotalDays <= 30);
+                .CountAsync(i => i.ExpiryDate.HasValue && (i.ExpiryDate.Value - DateTime.UtcNow).TotalDays <= 30);
 
             return new Dictionary<string, object>
             {

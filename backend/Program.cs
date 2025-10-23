@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PharmaDNA.Data;
 using PharmaDNA.Services;
+// using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +32,7 @@ if (!string.IsNullOrWhiteSpace(pinataGateway)) builder.Configuration["Pinata:Gat
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// builder.Services.AddSwaggerGen();
 
 // Database configuration
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");

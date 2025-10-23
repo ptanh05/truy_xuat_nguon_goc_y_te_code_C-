@@ -10,6 +10,15 @@ namespace PharmaDNA.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? CompletedAt { get; set; }
         public string? ErrorMessage { get; set; }
+        public string? OperationType { get; set; }
+        public string? FileName { get; set; }
+        public string? CreatedByUser { get; set; }
+        public string? CreatedByUserId { get; set; }
+        public int? ProcessedRecords { get; set; }
+        public int? FailedRecords { get; set; }
+        public int? ProgressPercentage { get; set; }
+        public int? TotalRecords { get; set; }
+        public DateTime? StartedAt { get; set; }
         
         // Navigation properties
         public ICollection<BatchOperationDetail> Details { get; set; } = new List<BatchOperationDetail>();

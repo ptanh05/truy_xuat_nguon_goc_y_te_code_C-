@@ -42,7 +42,7 @@ namespace PharmaDNA.Services
                 .ToDictionary(g => g.Key, g => g.Count());
 
             var dailyTransfers = transfers
-                .GroupBy(t => t.RequestDate.Date)
+                .GroupBy(t => t.RequestDate?.Date ?? DateTime.UtcNow.Date)
                 .OrderBy(g => g.Key)
                 .Select(g => new DailyTransferData
                 {
@@ -60,8 +60,8 @@ namespace PharmaDNA.Services
                     ProductName = g.Key,
                     TotalCreated = g.Count(),
                     TotalTransferred = transfers.Count(t => t.NFT.ProductName == g.Key),
-                    CurrentStock = g.Sum(n => n.Quantity ?? 0),
-                    TransferRate = g.Count() > 0 ? (decimal)transfers.Count(t => t.NFT.ProductName == g.Key) / g.Count() * 100 : 0
+                    CurrentStock = (int)g.Sum(n => n.Quantity ?? 0),
+                    TransferRate = g.Count() > 0 ? (double)transfers.Count(t => t.NFT.ProductName == g.Key) / g.Count() * 100 : 0
                 })
                 .OrderByDescending(p => p.TotalTransferred)
                 .Take(10)
@@ -74,11 +74,11 @@ namespace PharmaDNA.Services
                 SuccessfulTransfers = successfulTransfers,
                 RejectedTransfers = rejectedTransfers,
                 PendingTransfers = pendingTransfers,
-                SuccessRate = successRate,
-                TransfersByManufacturer = transfersByManufacturer,
-                TransfersByStatus = transfersByStatus,
-                DailyTransfers = dailyTransfers,
-                TopProducts = topProducts
+                SuccessRate = (double)successRate,
+                TransfersByManufacturer = System.Text.Json.JsonSerializer.Serialize(transfersByManufacturer),
+                TransfersByStatus = System.Text.Json.JsonSerializer.Serialize(transfersByStatus),
+                DailyTransfers = System.Text.Json.JsonSerializer.Serialize(dailyTransfers),
+                TopProducts = System.Text.Json.JsonSerializer.Serialize(topProducts)
             };
         }
 
@@ -164,8 +164,8 @@ namespace PharmaDNA.Services
                     ProductName = g.Key,
                     TotalCreated = g.Count(),
                     TotalTransferred = transfers.Count(t => t.NFT.ProductName == g.Key),
-                    CurrentStock = g.Sum(n => n.Quantity ?? 0),
-                    TransferRate = g.Count() > 0 ? (decimal)transfers.Count(t => t.NFT.ProductName == g.Key) / g.Count() * 100 : 0
+                    CurrentStock = (int)g.Sum(n => n.Quantity ?? 0),
+                    TransferRate = g.Count() > 0 ? (double)transfers.Count(t => t.NFT.ProductName == g.Key) / g.Count() * 100 : 0
                 })
                 .OrderByDescending(p => p.TotalTransferred)
                 .ToList();

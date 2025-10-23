@@ -30,7 +30,7 @@ namespace PharmaDNA.Services
                 FileName = fileName,
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow,
-                CreatedByUserId = userId,
+                CreatedByUserId = userId.ToString(),
                 ProcessedRecords = 0,
                 FailedRecords = 0,
                 ProgressPercentage = 0
@@ -80,7 +80,7 @@ namespace PharmaDNA.Services
             batch.ProcessedRecords = processedRecords;
             batch.FailedRecords = failedRecords;
             batch.ProgressPercentage = batch.TotalRecords > 0 
-                ? (double)(processedRecords + failedRecords) / batch.TotalRecords * 100 
+                ? (int)((double)(processedRecords + failedRecords) / batch.TotalRecords * 100)
                 : 0;
 
             await _context.SaveChangesAsync();
@@ -258,8 +258,8 @@ namespace PharmaDNA.Services
                     var transfer = new TransferRequest
                     {
                         NFTId = item.NFTId,
-                        FromUserId = item.FromUserId,
-                        ToUserId = item.ToUserId,
+                        FromUserId = item.FromUserId.ToString(),
+                        ToUserId = item.ToUserId.ToString(),
                         Quantity = item.Quantity,
                         Status = "Pending",
                         CreatedAt = DateTime.UtcNow

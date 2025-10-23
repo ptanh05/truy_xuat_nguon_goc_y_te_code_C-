@@ -18,6 +18,7 @@ namespace PharmaDNA.Models
         public string? ReportedByUser { get; set; }
         public string? ReportedByUserId { get; set; }
         public string? AssignedToUserId { get; set; }
+        public string? AssignedToUser { get; set; }
         
         // Navigation properties
         public NFT NFT { get; set; } = null!;

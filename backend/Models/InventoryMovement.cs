@@ -17,5 +17,6 @@ namespace PharmaDNA.Models
         
         // Navigation properties
         public InventoryItem Item { get; set; } = null!;
+        public InventoryItem? InventoryItem { get; set; }
     }
 }

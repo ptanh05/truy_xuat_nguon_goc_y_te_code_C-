@@ -9,6 +9,11 @@ namespace PharmaDNA.Models
         public DateTime ResolvedAt { get; set; } = DateTime.UtcNow;
         public string? Status { get; set; }
         public string? ResolvedByUser { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string? ResolvedByUserId { get; set; }
+        public string? ResolutionType { get; set; }
+        public string? Description { get; set; }
+        public decimal? Amount { get; set; }
         
         // Navigation properties
         public Dispute Dispute { get; set; } = null!;

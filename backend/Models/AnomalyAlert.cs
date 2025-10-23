@@ -10,5 +10,6 @@ namespace PharmaDNA.Models
         public bool IsResolved { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ResolvedAt { get; set; }
+        public DateTime? DetectedAt { get; set; }
     }
 }

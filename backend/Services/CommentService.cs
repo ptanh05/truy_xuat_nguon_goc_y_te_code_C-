@@ -149,7 +149,7 @@ namespace PharmaDNA.Services
         public async Task<List<Note>> GetNotesAsync(string entityType, int entityId)
         {
             return await _context.Notes
-                .Where(n => n.EntityType == entityType && n.EntityId == entityId && !n.IsArchived)
+                .Where(n => n.EntityType == entityType && n.EntityId == entityId && (n.IsArchived != true))
                 .OrderByDescending(n => n.Priority)
                 .ThenBy(n => n.DueDate)
                 .ToListAsync();
@@ -202,7 +202,7 @@ namespace PharmaDNA.Services
         public async Task<List<Note>> GetPendingNotesAsync()
         {
             return await _context.Notes
-                .Where(n => !n.IsCompleted && !n.IsArchived)
+                .Where(n => (n.IsCompleted != true) && (n.IsArchived != true))
                 .OrderByDescending(n => n.Priority)
                 .ThenBy(n => n.DueDate)
                 .ToListAsync();
@@ -211,7 +211,7 @@ namespace PharmaDNA.Services
         public async Task<List<Note>> GetOverdueNotesAsync()
         {
             return await _context.Notes
-                .Where(n => n.DueDate < DateTime.UtcNow && !n.IsCompleted && !n.IsArchived)
+                .Where(n => n.DueDate < DateTime.UtcNow && (n.IsCompleted != true) && (n.IsArchived != true))
                 .OrderBy(n => n.DueDate)
                 .ToListAsync();
         }

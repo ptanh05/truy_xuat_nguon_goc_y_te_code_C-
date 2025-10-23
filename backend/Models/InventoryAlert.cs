@@ -13,8 +13,10 @@ namespace PharmaDNA.Models
         public int? InventoryItemId { get; set; }
         public string? AlertType { get; set; }
         public DateTime? ResolvedDate { get; set; }
+        public DateTime? CreatedDate { get; set; }
         
         // Navigation properties
         public InventoryItem Item { get; set; } = null!;
+        public InventoryItem? InventoryItem { get; set; }
     }
 }

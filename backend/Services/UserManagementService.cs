@@ -262,7 +262,7 @@ namespace PharmaDNA.Services
         {
             var loginHistory = new UserLoginHistory
             {
-                UserId = userId,
+                UserId = userId.ToString(),
                 LoginTime = DateTime.UtcNow,
                 IpAddress = ipAddress,
                 UserAgent = userAgent,
@@ -279,7 +279,7 @@ namespace PharmaDNA.Services
         {
             var startDate = DateTime.UtcNow.AddDays(-days);
             return await _context.UserLoginHistories
-                .Where(h => h.UserId == userId && h.LoginTime >= startDate)
+                .Where(h => h.UserId == userId.ToString() && h.LoginTime >= startDate)
                 .OrderByDescending(h => h.LoginTime)
                 .ToListAsync();
         }

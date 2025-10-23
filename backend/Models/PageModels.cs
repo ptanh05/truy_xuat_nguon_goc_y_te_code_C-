@@ -85,38 +85,11 @@ namespace PharmaDNA.Models
         public string? StatusFilter { get; set; }
     }
 
-    public class CreateDisputeRequest
-    {
-        public int NFTId { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public string DisputeType { get; set; } = string.Empty;
-    }
-
     public class UpdateStatusRequest
     {
         public int DisputeId { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Resolution { get; set; }
-    }
-
-    public class AssignDisputeRequest
-    {
-        public int DisputeId { get; set; }
-        public int AssignedToUserId { get; set; }
-    }
-
-    public class AddCommentRequest
-    {
-        public int DisputeId { get; set; }
-        public string Comment { get; set; } = string.Empty;
-    }
-
-    public class CreateResolutionRequest
-    {
-        public int DisputeId { get; set; }
-        public string Resolution { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
     }
 
     // Inventory Models
