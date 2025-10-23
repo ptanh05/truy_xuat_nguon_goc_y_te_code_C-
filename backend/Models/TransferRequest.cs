@@ -8,7 +8,7 @@ namespace PharmaDNA.Models
         public string DistributorAddress { get; set; } = string.Empty;
         public string PharmacyAddress { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty; // pending, approved, rejected
-        public string BlockchainTxHash { get; set; } = string.Empty;
+        public string BlockchainTransactionHash { get; set; } = string.Empty;
         public string BlockchainStatus { get; set; } = string.Empty; // pending, confirmed, failed
         public string ValidationData { get; set; } = string.Empty; // JSON
         public DateTime ExpiresAt { get; set; }

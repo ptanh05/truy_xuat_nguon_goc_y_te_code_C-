@@ -1,40 +1,69 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Activity, Package, Users, TrendingUp, Shield, FileText } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Activity,
+  Package,
+  Users,
+  TrendingUp,
+  Shield,
+  FileText,
+} from "lucide-react";
 
-interface DashboardStats {
-  totalNFTs: number;
-  totalTransfers: number;
-  activeUsers: number;
-  totalValue: number;
-  averageTransferTime: number;
-  disputeCount: number;
-  disputeResolutionRate: number;
+interface PharmaNetworkInfo {
+  networkName: string;
+  chainId: number;
+  rpcUrl: string;
+  contractAddress: string;
+  gasPrice: string;
+  gasLimit: string;
+  isConnected: boolean;
 }
 
 export default function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [networkInfo, setNetworkInfo] = useState<PharmaNetworkInfo | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchNetworkInfo();
   }, []);
 
   const fetchDashboardStats = async () => {
     try {
-      const response = await fetch('/api/analytics/dashboard');
+      const response = await fetch("/api/analytics/dashboard");
       if (response.ok) {
         const data = await response.json();
         setStats(data);
       }
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.error("Error fetching dashboard stats:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNetworkInfo = async () => {
+    try {
+      const response = await fetch("/api/pharmanetwork/info");
+      if (response.ok) {
+        const data = await response.json();
+        setNetworkInfo(data);
+      }
+    } catch (error) {
+      console.error("Error fetching network info:", error);
     }
   };
 
@@ -49,9 +78,30 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 mb-2">
             Hệ thống truy xuất nguồn gốc y tế
           </p>
-          <p className="text-gray-500">
+          <p className="text-gray-500 mb-4">
             Sử dụng blockchain và NFT để theo dõi chuỗi cung ứng dược phẩm
           </p>
+          {networkInfo && (
+            <div className="flex justify-center items-center space-x-4">
+              <Badge
+                variant="outline"
+                className="text-blue-600 border-blue-600"
+              >
+                🌐 {networkInfo.networkName}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="text-green-600 border-green-600"
+              >
+                Chain ID: {networkInfo.chainId}
+              </Badge>
+              <Badge
+                variant={networkInfo.isConnected ? "default" : "destructive"}
+              >
+                {networkInfo.isConnected ? "🟢 Kết nối" : "🔴 Mất kết nối"}
+              </Badge>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -81,9 +131,7 @@ export default function HomePage() {
                 <div className="text-2xl font-bold text-blue-600">
                   {stats?.totalNFTs || 0}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Thuốc được đăng ký
-                </p>
+                <p className="text-xs text-gray-500">Thuốc được đăng ký</p>
               </CardContent>
             </Card>
 
@@ -98,9 +146,7 @@ export default function HomePage() {
                 <div className="text-2xl font-bold text-green-600">
                   {stats?.totalTransfers || 0}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Giao dịch thành công
-                </p>
+                <p className="text-xs text-gray-500">Giao dịch thành công</p>
               </CardContent>
             </Card>
 
@@ -115,9 +161,7 @@ export default function HomePage() {
                 <div className="text-2xl font-bold text-purple-600">
                   {stats?.activeUsers || 0}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Hoạt động tích cực
-                </p>
+                <p className="text-xs text-gray-500">Hoạt động tích cực</p>
               </CardContent>
             </Card>
 
@@ -130,11 +174,9 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-orange-600">
-                  ${stats?.totalValue?.toLocaleString() || '0'}
+                  ${stats?.totalValue?.toLocaleString() || "0"}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Tổng giá trị
-                </p>
+                <p className="text-xs text-gray-500">Tổng giá trị</p>
               </CardContent>
             </Card>
           </div>

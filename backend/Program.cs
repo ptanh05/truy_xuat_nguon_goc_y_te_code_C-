@@ -5,18 +5,22 @@ using PharmaDNA.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Environment variable overrides for external services (Infura, Pinata)
-// Prefer explicit env vars if present to avoid changing appsettings files across machines
-var infuraEndpoint = Environment.GetEnvironmentVariable("INFURA_ENDPOINT");
-var infuraProjectId = Environment.GetEnvironmentVariable("INFURA_PROJECT_ID");
-if (!string.IsNullOrWhiteSpace(infuraEndpoint))
+// Environment variable overrides for Pharma Network
+var pharmaRpcUrl = Environment.GetEnvironmentVariable("PHARMA_RPC_URL");
+var pharmaContractAddress = Environment.GetEnvironmentVariable("PHARMA_CONTRACT_ADDRESS");
+var pharmaPrivateKey = Environment.GetEnvironmentVariable("PHARMA_PRIVATE_KEY");
+
+if (!string.IsNullOrWhiteSpace(pharmaRpcUrl))
 {
-    builder.Configuration["Blockchain:RpcUrl"] = infuraEndpoint;
+    builder.Configuration["PharmaNetwork:RpcUrl"] = pharmaRpcUrl;
 }
-else if (!string.IsNullOrWhiteSpace(infuraProjectId))
+if (!string.IsNullOrWhiteSpace(pharmaContractAddress))
 {
-    // Fallback to standard Infura mainnet endpoint format if only ProjectId is provided
-    builder.Configuration["Blockchain:RpcUrl"] = $"https://mainnet.infura.io/v3/{infuraProjectId}";
+    builder.Configuration["PharmaNetwork:ContractAddress"] = pharmaContractAddress;
+}
+if (!string.IsNullOrWhiteSpace(pharmaPrivateKey))
+{
+    builder.Configuration["PharmaNetwork:PrivateKey"] = pharmaPrivateKey;
 }
 
 var pinataApiKey = Environment.GetEnvironmentVariable("PINATA_API_KEY");
@@ -30,7 +34,6 @@ if (!string.IsNullOrWhiteSpace(pinataGateway)) builder.Configuration["Pinata:Gat
 
 // Add services to the container
 builder.Services.AddControllers();
-builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 // builder.Services.AddSwaggerGen();
 
@@ -40,24 +43,8 @@ builder.Services.AddDbContext<PharmaDNAContext>(options =>
     options.UseSqlServer(connectionString));
 
 // Add custom services
-builder.Services.AddScoped<IBlockchainService, BlockchainService>();
+builder.Services.AddScoped<IPharmaNetworkService, PharmaNetworkService>();
 builder.Services.AddScoped<IPinataService, PinataService>();
-builder.Services.AddScoped<INFTService, NFTService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<Web3ContractService>();
-
-// Additional services
-builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
-builder.Services.AddScoped<IAuditService, AuditService>();
-builder.Services.AddScoped<IBatchOperationService, BatchOperationService>();
-builder.Services.AddScoped<ICommentService, CommentService>();
-builder.Services.AddScoped<IDisputeService, DisputeService>();
-builder.Services.AddScoped<IInventoryService, InventoryService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<ISearchService, SearchService>();
-builder.Services.AddScoped<IUserManagementService, UserManagementService>();
-builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
-builder.Services.AddScoped<IQRCodeService, QRCodeService>();
 
 // Add session
 builder.Services.AddSession(options =>
@@ -88,16 +75,9 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
-app.UseMiddleware<PharmaDNA.Middleware.Web3AuthenticationMiddleware>();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapRazorPages();
 app.MapControllers();
 
 app.Run();

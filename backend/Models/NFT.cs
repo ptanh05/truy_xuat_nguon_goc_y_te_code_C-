@@ -1,31 +1,53 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace PharmaDNA.Models
 {
     public class NFT
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string BatchNumber { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty; // pending, active, transferred_to_distributor, transferred_to_pharmacy
-        public string ManufacturerAddress { get; set; } = string.Empty;
-        public string DistributorAddress { get; set; } = string.Empty;
-        public string PharmacyAddress { get; set; } = string.Empty;
-        public string ImageUrl { get; set; } = string.Empty;
-        public string MetadataUrl { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         
-        // Additional properties needed by services
-        public string? ProductName { get; set; }
-        public string? ProductCode { get; set; }
-        public string? BatchId { get; set; }
-        public string? Manufacturer { get; set; }
-        public DateTime? ExpiryDate { get; set; }
-        public decimal? Price { get; set; }
-        public int? Quantity { get; set; }
-        public string? ProductType { get; set; }
-        public DateTime? CreatedDate { get; set; }
-
+        [Required]
+        [StringLength(200)]
+        public string ProductName { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(50)]
+        public string ProductCode { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(50)]
+        public string BatchId { get; set; } = string.Empty;
+        
+        [Required]
+        [StringLength(200)]
+        public string Manufacturer { get; set; } = string.Empty;
+        
+        public DateTime ExpiryDate { get; set; }
+        
+        [Range(0, double.MaxValue)]
+        public decimal Price { get; set; }
+        
+        [Range(1, int.MaxValue)]
+        public int Quantity { get; set; }
+        
+        [StringLength(100)]
+        public string ProductType { get; set; } = string.Empty;
+        
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        
+        // Pharma Network specific fields
+        [StringLength(100)]
+        public string? BlockchainTransactionHash { get; set; }
+        
+        [StringLength(100)]
+        public string? BlockchainAddress { get; set; }
+        
+        [StringLength(100)]
+        public string? PharmaNetworkId { get; set; }
+        
+        public bool IsActive { get; set; } = true;
+        
         // Navigation properties
-        public ICollection<Milestone> Milestones { get; set; } = new List<Milestone>();
+        public virtual ICollection<TransferRequest> TransferRequests { get; set; } = new List<TransferRequest>();
     }
 }

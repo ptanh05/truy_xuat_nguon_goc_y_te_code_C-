@@ -15,8 +15,6 @@ D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDN
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.AssemblyInfo.cs
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.csproj.CoreCompileInputs.cache
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.MvcApplicationPartsAssemblyInfo.cache
-D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cache
-D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.RazorAssemblyInfo.cs
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\obj\Debug\net8.0\PharmaDNA.sourcelink.json
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\bin\Debug\net8.0\appsettings.Development.json
 D:\New folder\truy_xuat_nguon_goc_y_te_code_C-\backend\bin\Debug\net8.0\appsettings.json

@@ -15,8 +15,6 @@ namespace PharmaDNA.Models
         public int FailedLoginAttempts { get; set; } = 0;
         public bool IsLocked { get; set; } = false;
         public DateTime? LockedUntil { get; set; }
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-        public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
