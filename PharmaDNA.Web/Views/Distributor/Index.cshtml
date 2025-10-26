@@ -1,0 +1,270 @@
+@model PharmaDNA.Web.Models.ViewModels.DistributorViewModel
+
+@{
+    ViewData["Title"] = "Nhà phân phối - Quản lý vận chuyển";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Quản lý vận chuyển</h1>
+            <p class="text-muted mb-4">Theo dõi và cập nhật trạng thái các lô thuốc đang vận chuyển</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box"></i> Lô thuốc đang quản lý
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="nftList">
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-box" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p class="mt-2">Đang tải danh sách lô thuốc...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-upload"></i> Upload dữ liệu AIoT
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="selectedNftInfo" class="mb-3 p-3 bg-light rounded" style="display: none;">
+                        <p class="mb-1"><strong>Đã chọn lô:</strong></p>
+                        <p id="selectedNftId" class="text-primary mb-0"></p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">File dữ liệu cảm biến (JSON)</label>
+                        <input type="file" id="sensorFile" accept=".json" class="form-control" />
+                    </div>
+
+                    <button id="uploadSensorBtn" class="btn btn-primary w-100 mb-3" disabled>
+                        <i class="bi bi-cloud-upload"></i> Gắn metadata lên IPFS
+                    </button>
+
+                    <div class="small text-muted">
+                        <p>• Dữ liệu cảm biến bao gồm: nhiệt độ, độ ẩm, vị trí GPS</p>
+                        <p>• File JSON sẽ được upload lên IPFS</p>
+                        <p>• Metadata NFT sẽ được cập nhật với hash mới</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Milestone Form -->
+            <div class="card mt-4" id="milestoneForm" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">Thêm mốc vận chuyển</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Loại mốc *</label>
+                        <input type="text" id="milestoneType" class="form-control" placeholder="Ví dụ: Nhận hàng, Đang vận chuyển" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Vị trí</label>
+                        <input type="text" id="milestoneLocation" class="form-control" placeholder="Vị trí hiện tại" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea id="milestoneDescription" class="form-control" rows="2" placeholder="Mô tả chi tiết"></textarea>
+                    </div>
+                    <button id="submitMilestoneBtn" class="btn btn-success w-100">
+                        <i class="bi bi-plus"></i> Thêm mốc
+                    </button>
+                </div>
+            </div>
+
+            <!-- Milestone History -->
+            <div class="card mt-4" id="milestoneHistory" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">Lịch sử vận chuyển</h5>
+                </div>
+                <div class="card-body">
+                    <div id="milestonesList">
+                        <div class="text-center text-muted">Đang tải lịch sử...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let selectedNftId = null;
+
+        // Load NFTs
+        async function loadNFTs() {
+            try {
+                const response = await fetch('/Distributor/GetNFTs');
+                const nfts = await response.json();
+                
+                const nftList = document.getElementById('nftList');
+                if (nfts.length === 0) {
+                    nftList.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-box" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p class="mt-2">Chưa có lô thuốc nào được giao cho bạn</p>
+                            <p class="small">Các lô thuốc sẽ hiển thị ở đây khi được chuyển giao</p>
+                        </div>
+                    `;
+                } else {
+                    nftList.innerHTML = nfts.map(nft => `
+                        <div class="border rounded p-3 mb-2 d-flex justify-content-between align-items-center ${selectedNftId == nft.id ? 'bg-primary text-white' : ''}">
+                            <div>
+                                <div class="fw-bold">#${nft.id}</div>
+                                <div class="small">${nft.name}</div>
+                                <div class="small text-muted">${nft.batchNumber}</div>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm ${selectedNftId == nft.id ? 'btn-light' : 'btn-outline-primary'}" 
+                                        onclick="selectNFT(${nft.id})">
+                                    ${selectedNftId == nft.id ? 'Đã chọn' : 'Chọn'}
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading NFTs:', error);
+            }
+        }
+
+        function selectNFT(nftId) {
+            selectedNftId = nftId;
+            document.getElementById('selectedNftId').textContent = `#${nftId}`;
+            document.getElementById('selectedNftInfo').style.display = 'block';
+            document.getElementById('milestoneForm').style.display = 'block';
+            document.getElementById('milestoneHistory').style.display = 'block';
+            document.getElementById('uploadSensorBtn').disabled = false;
+            
+            loadNFTs();
+            loadMilestones(nftId);
+        }
+
+        // Upload sensor data
+        document.getElementById('uploadSensorBtn').addEventListener('click', async function() {
+            const sensorFile = document.getElementById('sensorFile').files[0];
+            if (!sensorFile || !selectedNftId) {
+                alert('Vui lòng chọn file và lô thuốc');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('sensorFile', sensorFile);
+            formData.append('nftId', selectedNftId);
+            formData.append('distributorAddress', '0x...'); // This should come from user context
+
+            try {
+                const response = await fetch('/Distributor/UploadSensorData', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Upload dữ liệu cảm biến thành công!');
+                    document.getElementById('sensorFile').value = '';
+                } else {
+                    alert('Upload thất bại: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        });
+
+        // Submit milestone
+        document.getElementById('submitMilestoneBtn').addEventListener('click', async function() {
+            const type = document.getElementById('milestoneType').value;
+            if (!type || !selectedNftId) {
+                alert('Vui lòng điền đầy đủ thông tin');
+                return;
+            }
+
+            const milestone = {
+                nftId: selectedNftId,
+                type: type,
+                description: document.getElementById('milestoneDescription').value,
+                location: document.getElementById('milestoneLocation').value,
+                actorAddress: '0x...' // This should come from user context
+            };
+
+            try {
+                const response = await fetch('/Distributor/AddMilestone', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(milestone)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Đã thêm mốc vận chuyển!');
+                    document.getElementById('milestoneType').value = '';
+                    document.getElementById('milestoneDescription').value = '';
+                    document.getElementById('milestoneLocation').value = '';
+                    loadMilestones(selectedNftId);
+                } else {
+                    alert('Thêm mốc thất bại: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        });
+
+        // Load milestones
+        async function loadMilestones(nftId) {
+            try {
+                const response = await fetch(`/Distributor/GetMilestones?nftId=${nftId}`);
+                const milestones = await response.json();
+                
+                const milestonesList = document.getElementById('milestonesList');
+                if (milestones.length === 0) {
+                    milestonesList.innerHTML = '<div class="text-center text-muted">Chưa có mốc vận chuyển nào</div>';
+                } else {
+                    milestonesList.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Loại mốc</th>
+                                        <th>Mô tả</th>
+                                        <th>Vị trí</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${milestones.map(m => `
+                                        <tr>
+                                            <td class="small">${new Date(m.timestamp).toLocaleString()}</td>
+                                            <td>${m.type}</td>
+                                            <td>${m.description || ''}</td>
+                                            <td>${m.location || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading milestones:', error);
+            }
+        }
+
+        // Load NFTs on page load
+        loadNFTs();
+    </script>
+}

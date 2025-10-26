@@ -1,0 +1,220 @@
+@model PharmaDNA.Web.Models.ViewModels.PharmacyViewModel
+
+@{
+    ViewData["Title"] = "Tra cứu thuốc";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Tra cứu nguồn gốc thuốc</h1>
+            <p class="text-muted mb-4">Nhập số lô thuốc để xem thông tin chi tiết và lịch sử vận chuyển</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-search"></i> Tìm kiếm thuốc
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Số lô thuốc</label>
+                        <input type="text" id="batchNumber" class="form-control" placeholder="Nhập số lô thuốc (ví dụ: LOT2024001)" />
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="searchDrug()">
+                        <i class="bi bi-search"></i> Tra cứu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Thông tin thuốc
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="drugInfo">
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p class="mt-2">Nhập số lô để tra cứu thông tin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4" id="drugHistory" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Lịch sử vận chuyển
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="milestonesList">
+                        <div class="text-center text-muted">Đang tải lịch sử...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function searchDrug() {
+            const batchNumber = document.getElementById('batchNumber').value;
+            if (!batchNumber) {
+                alert('Vui lòng nhập số lô thuốc');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Lookup/Search?batchNumber=${encodeURIComponent(batchNumber)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayDrugInfo(result.data);
+                    loadDrugHistory(batchNumber);
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        function displayDrugInfo(drug) {
+            const drugInfo = document.getElementById('drugInfo');
+            drugInfo.innerHTML = `
+                <div class="mb-3">
+                    <div class="small text-muted mb-1">Số lô: ${drug.batchNumber}</div>
+                    <h5 class="mb-2">${drug.name}</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">ID:</small><br>
+                            <span class="small">${drug.id}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Trạng thái:</small><br>
+                            <span class="badge bg-${getStatusColor(drug.status)}">${drug.status}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Ngày sản xuất:</small><br>
+                            <span class="small">${formatDate(drug.manufactureDate)}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Hạn dùng:</small><br>
+                            <span class="small">${formatDate(drug.expiryDate)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${drug.description ? `
+                    <div class="mb-3">
+                        <small class="text-muted">Mô tả:</small><br>
+                        <span class="small">${drug.description}</span>
+                    </div>
+                ` : ''}
+
+                <div class="mb-3">
+                    <small class="text-muted">Địa chỉ:</small><br>
+                    <div class="small">
+                        <div>Manufacturer: <span class="font-monospace">${drug.manufacturerAddress}</span></div>
+                        ${drug.distributorAddress ? `<div>Distributor: <span class="font-monospace">${drug.distributorAddress}</span></div>` : ''}
+                        ${drug.pharmacyAddress ? `<div>Pharmacy: <span class="font-monospace">${drug.pharmacyAddress}</span></div>` : ''}
+                    </div>
+                </div>
+
+                ${drug.imageUrl ? `
+                    <div class="mb-3">
+                        <img src="${drug.imageUrl}" alt="Ảnh thuốc" class="img-fluid rounded" style="max-width: 200px;">
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        async function loadDrugHistory(batchNumber) {
+            try {
+                const response = await fetch(`/Lookup/GetDrugHistory?batchNumber=${encodeURIComponent(batchNumber)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayMilestones(result.milestones);
+                    document.getElementById('drugHistory').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading drug history:', error);
+            }
+        }
+
+        function displayMilestones(milestones) {
+            const milestonesList = document.getElementById('milestonesList');
+            if (milestones.length === 0) {
+                milestonesList.innerHTML = '<div class="text-center text-muted">Chưa có mốc vận chuyển nào</div>';
+            } else {
+                milestonesList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Thời gian</th>
+                                    <th>Loại mốc</th>
+                                    <th>Mô tả</th>
+                                    <th>Vị trí</th>
+                                    <th>Người thực hiện</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${milestones.map(m => `
+                                    <tr>
+                                        <td class="small">${new Date(m.timestamp).toLocaleString('vi-VN')}</td>
+                                        <td><span class="badge bg-primary">${m.type}</span></td>
+                                        <td>${m.description || ''}</td>
+                                        <td>${m.location || ''}</td>
+                                        <td class="font-monospace small">${m.actorAddress}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+        }
+
+        function getStatusColor(status) {
+            switch (status.toLowerCase()) {
+                case 'created': return 'primary';
+                case 'in_transit': return 'warning';
+                case 'in_pharmacy': return 'success';
+                default: return 'secondary';
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleDateString('vi-VN');
+        }
+
+        // Allow search on Enter key
+        document.getElementById('batchNumber').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchDrug();
+            }
+        });
+    </script>
+}

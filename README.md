@@ -1,211 +1,120 @@
-# PharmaDNA - Truy xuất nguồn gốc y tế
+# PharmaDNA
 
-## 🎯 Tổng quan
+PharmaDNA là hệ thống truy xuất nguồn gốc thuốc sử dụng Blockchain (PharmaDNA chainlet), AIoT và NFT để đảm bảo minh bạch, xác thực và quản lý chuỗi cung ứng dược phẩm.
 
-Dự án PharmaDNA là một hệ thống truy xuất nguồn gốc thuốc sử dụng **Pharma Network** (blockchain riêng) và NFT để theo dõi chuỗi cung ứng dược phẩm.
+## Chức năng chính
 
-## 🚀 Công nghệ sử dụng
+- **Mint NFT cho lô thuốc**: Mỗi lô thuốc là một NFT duy nhất, lưu metadata trên IPFS.
+- **Quản lý vận chuyển**: Nhà phân phối nhận lô, upload dữ liệu cảm biến, cập nhật trạng thái vận chuyển.
+- **Nhà thuốc xác nhận nhập kho**: Quét QR hoặc nhập ID để xác minh và xác nhận nhập kho.
+- **Quản trị viên**: Cấp quyền vai trò cho các ví trên contract và đồng bộ với backend.
+- **Lịch sử vận chuyển**: Lưu và hiển thị các mốc vận chuyển (milestones) của từng lô thuốc.
 
-- **Backend**: .NET 8 Web API (C#)
-- **Frontend**: Next.js 15 (TypeScript/React)
-- **Database**: SQL Server
-- **Blockchain**: **Pharma Network** (thay thế Ethereum)
-- **IPFS**: Pinata
-- **UI**: Tailwind CSS + shadcn/ui
-
-## 📁 Cấu trúc dự án (Đã tối ưu)
+## Cấu trúc thư mục
 
 ```
-├── backend/                 # .NET 8 Web API (Đã làm sạch)
-│   ├── Controllers/         # API Controllers
-│   │   ├── PharmaNetworkController.cs
-│   │   └── TraceabilityController.cs (Sẽ tạo lại)
-│   ├── Services/           # Business Logic
-│   │   ├── PharmaNetworkService.cs
-│   │   └── PinataService.cs
-│   ├── Models/             # Data Models (Đã tối ưu)
-│   │   ├── NFT.cs
-│   │   ├── TransferRequest.cs
-│   │   ├── TraceabilityRecord.cs
-│   │   └── User.cs
-│   ├── Data/               # Entity Framework Context
-│   │   └── PharmaDNAContext.cs
-│   └── appsettings.json    # Pharma Network config
-├── frontend/               # Next.js Application
-│   ├── app/                # App Router
-│   │   ├── page.tsx        # Dashboard
-│   │   ├── nft/page.tsx    # NFT Management
-│   │   └── traceability/page.tsx
-│   ├── components/         # React Components
-│   │   └── Navigation.tsx
-│   └── styles/             # Tailwind CSS
-└── start_pharma.bat       # Script chạy nhanh
+Pharma_DNA_saga_2025/
+  app/                 # Next.js frontend & API routes
+    manufacturer/      # Trang nhà sản xuất (mint NFT)
+    distributor/       # Trang nhà phân phối (quản lý vận chuyển)
+    pharmacy/          # Trang nhà thuốc (quét, xác nhận nhập kho)
+    admin/             # Trang quản trị viên
+    api/               # API backend (Next.js route handlers)
+      manufacturer/    # API cho nhà sản xuất, milestone, transfer-request
+      distributor/     # API cho nhà phân phối
+      ...
+  saga-contract/       # Smart contract (Solidity, Hardhat)
+  lib/                 # ABI, utils, db
+  hooks/               # Custom React hooks
+  components/          # UI components
+  public/              # Ảnh, logo
+  ...
 ```
 
-## ⚡ Cách chạy nhanh nhất
+## Cài đặt & chạy local
 
-### Sử dụng script tự động
+1. **Clone repo**
+2. Cài dependencies:
+   ```bash
+   npm install
+   # hoặc pnpm install
+   ```
+3. Tạo file `.env` với các biến:
+   DATABASE_URL=
 
-```bash
-# Windows
-start_pharma.bat
+   **PharmaDNA Chainlet Details:**
 
-# Hoặc chạy từ frontend
-cd frontend
-npm run dev:full
-```
+   - Chain ID: `2759821881746000` (0x9ce0b1ae7a250)
+   - RPC URL: `https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io`
+   - Block Explorer: `https://pharmadna-2759821881746000-1.sagaexplorer.io`
+   - Native Currency: `PDNA`
 
-### Chạy riêng lẻ
+4. Chạy migrate DB nếu cần (PostgreSQL)
+5. Chạy app:
+   ```bash
+   npm run dev
+   # hoặc pnpm dev
+   ```
+6. Chạy smart contract (Hardhat):
+   ```bash
+   cd saga-contract
+   npm install
+   npx hardhat compile
+   # Deploy contract lên PharmaDNA chainlet
+   npx hardhat run scripts/deployPharmaNFT.ts --network pharmadna
+   # Hoặc sử dụng script có sẵn (Windows)
+   deploy-pharmadna.bat
+   ```
 
-```bash
-# Backend (.NET)
-cd backend
-dotnet run
+## Các vai trò & luồng chính
 
-# Frontend (Next.js)
-cd frontend
-npm run dev
-```
+- **Manufacturer**: Mint NFT, upload metadata, chỉ mint được khi có quyền trên contract.
+- **Distributor**: Nhận lô đã được chấp thuận, upload dữ liệu cảm biến, cập nhật milestone.
+- **Pharmacy**: Quét QR hoặc nhập ID, xác nhận nhập kho (milestone "Đã nhập kho").
+- **Admin**: Cấp quyền cho ví, đồng bộ quyền lên contract (gọi assignRole).
 
-## 🔧 Cấu hình Pharma Network
+## Lưu ý đặc biệt
 
-### Environment Variables
+- FE/BE chỉ cho phép thao tác khi ví có đúng quyền trên contract (kiểm tra trực tiếp on-chain).
+- Mọi upload file đều lưu lên IPFS qua Pinata.
+- Milestone lưu vào bảng `milestones` (PostgreSQL).
+- Địa chỉ contract, private key, Pinata JWT phải bảo mật trong `.env`.
+- Đảm bảo contract đã deploy đúng version, đúng enum Role.
 
-```bash
-# Pharma Network Configuration
-setx PHARMA_RPC_URL "https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io"
-setx PHARMA_CONTRACT_ADDRESS "0x..."
-setx PHARMA_PRIVATE_KEY "your_private_key"
+## Các lệnh chính
 
-# Pinata (IPFS)
-setx PINATA_API_KEY "your_pinata_api_key"
-setx PINATA_SECRET_API_KEY "your_pinata_secret"
-setx PINATA_JWT "your_pinata_jwt"
-setx PINATA_GATEWAY "https://gateway.pinata.cloud/ipfs"
-```
+- `npm run dev` — Chạy frontend/backend Next.js
+- `npx hardhat run scripts/deployPharmaNFT.ts --network pharmadna` — Deploy contract
+- `npx hardhat compile` — Compile contract
 
-### appsettings.json
+## Contract API (PharmaNFT)
 
-```json
-{
-  "PharmaNetwork": {
-    "RpcUrl": "https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io",
-    "ContractAddress": "0x...",
-    "PrivateKey": "",
-    "ChainId": 2759821881746000,
-    "NetworkName": "PharmaDNA Network",
-    "GasPrice": "20000000000",
-    "GasLimit": "21000"
-  }
-}
-```
+- Roles:
 
-## ✅ Tính năng đã hoàn thành
+  - `assignRole(address user, Role role)` — Owner only
+  - `revokeRole(address user)` — Owner only
+  - `batchAssignRoles(address[] users, Role[] roles)` — Owner only
+  - `roles(address) -> Role` — Public getter (giữ tương thích FE)
+  - `hasRole(address user, Role role) -> bool`
+  - `getRole(address user) -> Role`
 
-### 🏥 **Dashboard**
+- NFT lifecycle:
 
-- Trang chủ với thống kê tổng quan
-- Hiển thị thông tin Pharma Network
-- Cards thống kê NFT, chuyển giao, người dùng
+  - `mintProductNFT(string uri) -> uint256` — Chỉ Manufacturer, khi không bị pause
+  - `transferProductNFT(uint256 tokenId, address to)` — Chỉ chủ token, người nhận phải có role
+  - `getProductHistory(uint256 tokenId) -> address[]`
+  - `getProductCurrentOwner(uint256 tokenId) -> address`
 
-### 📦 **NFT Management**
+- Admin controls:
+  - `pause()` / `unpause()` — Owner only
 
-- Quản lý NFT thuốc trên Pharma Network
-- Tạo NFT mới với thông tin sản phẩm
-- Chuyển giao NFT giữa các địa chỉ
-- Giao diện đẹp với Tailwind CSS
+Enum `Role { None, Manufacturer, Distributor, Pharmacy, Admin }`
 
-### 🔍 **Traceability**
+## Đóng góp & phát triển
 
-- Truy xuất nguồn gốc và lịch sử di chuyển
-- Tìm kiếm theo mã sản phẩm, số lô, NFT ID
-- Timeline hiển thị lịch sử di chuyển
-- Xác minh blockchain
+- Fork, PR, issue đều welcome!
+- Đọc kỹ code trong `app/api/` và `saga-contract/` để hiểu luồng nghiệp vụ.
 
-### 🌐 **Pharma Network Integration**
+---
 
-- Tích hợp với blockchain riêng
-- `PharmaNetworkService` thay thế Ethereum
-- API endpoints cho network operations
-- Environment variables configuration
-
-### 🎨 **Modern UI**
-
-- Giao diện đẹp với Tailwind CSS
-- Navigation component với status badges
-- Responsive design
-- shadcn/ui components
-
-## 🔄 Đang phát triển
-
-- 🔐 **Authentication** - Xác thực người dùng
-- 📈 **Advanced Analytics** - Phân tích nâng cao
-- 🔔 **Notifications** - Hệ thống thông báo
-- 📄 **Reports** - Báo cáo chi tiết
-
-## 🌐 API Endpoints
-
-### Pharma Network
-
-- `GET /api/pharmanetwork/info` - Thông tin mạng
-- `POST /api/pharmanetwork/nft` - Tạo NFT
-- `GET /api/pharmanetwork/nfts` - Lấy danh sách NFT
-- `POST /api/pharmanetwork/transfer` - Chuyển giao NFT
-
-### Traceability (Sẽ tạo lại)
-
-- `GET /api/traceability/search` - Tìm kiếm truy xuất
-- `GET /api/traceability/nft/{id}` - Truy xuất theo NFT ID
-- `POST /api/traceability/record` - Thêm bản ghi truy xuất
-
-## 📍 URLs
-
-- **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:5000
-- **API**: http://localhost:3000/api/\* (proxy đến backend)
-
-## ✨ Những gì đã được tối ưu
-
-### ✅ **Code Cleanup**
-
-- Xóa tất cả code thừa và không cần thiết
-- Loại bỏ Ethereum-related code
-- Xóa các service không sử dụng
-- Xóa các model không cần thiết
-- Xóa Razor Pages và wwwroot
-
-### ✅ **Build Success**
-
-- Backend build thành công với chỉ 11 warnings
-- Không có errors
-- Tất cả dependencies đã được tối ưu
-
-### ✅ **Structure Optimization**
-
-- Cấu trúc dự án gọn gàng
-- Chỉ giữ lại những gì cần thiết
-- Frontend và backend tách biệt rõ ràng
-
-## 🚀 Scripts chạy nhanh
-
-- `start_pharma.bat` - Chạy cả backend và frontend (Windows)
-- `npm run dev:full` - Chạy từ frontend directory
-
-## 🎯 Lưu ý quan trọng
-
-- ✅ **Đã chuyển từ Ethereum sang Pharma Network**
-- ✅ **Backend sử dụng C# thuần túy**
-- ✅ **Frontend và Backend đã được tích hợp hoàn chỉnh**
-- ✅ **Tất cả lỗi build đã được sửa**
-- ✅ **Code đã được làm sạch và tối ưu**
-- ✅ **Giao diện đẹp với Tailwind CSS**
-- ✅ **Hỗ trợ đầy đủ tính năng truy xuất nguồn gốc**
-
-**Dự án đã sẵn sàng để phát triển và deploy trên Pharma Network!** 🚀
-
-## 🔧 Cần làm tiếp
-
-1. **Tạo lại TraceabilityController** - Để hỗ trợ API truy xuất
-2. **Thêm Authentication** - Xác thực người dùng
-3. **Deploy lên server** - Triển khai production
-4. **Testing** - Kiểm thử toàn diện
+Mọi thắc mắc vui lòng liên hệ admin dự án hoặc tạo issue trên repo!

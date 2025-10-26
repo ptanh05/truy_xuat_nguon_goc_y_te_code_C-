@@ -1,0 +1,258 @@
+@model PharmaDNA.Web.Models.ViewModels.PharmacyViewModel
+
+@{
+    ViewData["Title"] = "Nhà thuốc - Kiểm tra và xác nhận lô thuốc";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Kiểm tra và xác nhận lô thuốc</h1>
+            <p class="text-muted mb-4">Quét QR hoặc nhập số lô để xác minh và nhập kho</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-qr-code"></i> Quét mã QR hoặc nhập thủ công
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="scanMode" id="qrMode" value="qr" checked>
+                            <label class="btn btn-outline-primary" for="qrMode">
+                                <i class="bi bi-qr-code"></i> Quét QR
+                            </label>
+                            <input type="radio" class="btn-check" name="scanMode" id="manualMode" value="manual">
+                            <label class="btn btn-outline-primary" for="manualMode">
+                                <i class="bi bi-search"></i> Nhập thủ công
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="qrScanner" class="text-center">
+                        <div class="border rounded p-4 mb-3">
+                            <i class="bi bi-camera" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p class="mt-2">Camera sẽ được kích hoạt để quét QR</p>
+                            <button class="btn btn-primary" onclick="startQRScanner()">
+                                <i class="bi bi-camera"></i> Bắt đầu quét
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="manualInput" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Số lô thuốc</label>
+                            <input type="text" id="batchNumber" class="form-control" placeholder="Nhập số lô thuốc (ví dụ: BN123, BN456)" />
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="lookupDrug()">
+                            <i class="bi bi-search"></i> Tra cứu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box"></i> Thông tin lô thuốc
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="drugInfo">
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-qr-code" style="font-size: 3rem; opacity: 0.5;"></i>
+                            <p class="mt-2">Quét QR hoặc nhập Số lô để xem thông tin</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Toggle between QR and manual input
+        document.querySelectorAll('input[name="scanMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const qrScanner = document.getElementById('qrScanner');
+                const manualInput = document.getElementById('manualInput');
+                
+                if (this.value === 'qr') {
+                    qrScanner.style.display = 'block';
+                    manualInput.style.display = 'none';
+                } else {
+                    qrScanner.style.display = 'none';
+                    manualInput.style.display = 'block';
+                }
+            });
+        });
+
+        function startQRScanner() {
+            // This would integrate with a QR scanner library
+            alert('QR Scanner functionality would be implemented here');
+        }
+
+        async function lookupDrug() {
+            const batchNumber = document.getElementById('batchNumber').value;
+            if (!batchNumber) {
+                alert('Vui lòng nhập số lô thuốc');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Pharmacy/LookupDrug?batchNumber=${encodeURIComponent(batchNumber)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayDrugInfo(result.data);
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        function displayDrugInfo(drug) {
+            const drugInfo = document.getElementById('drugInfo');
+            drugInfo.innerHTML = `
+                <div class="mb-3">
+                    <div class="small text-muted mb-1">Số lô: ${drug.batchNumber}</div>
+                    <h5 class="mb-2">${drug.name}</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">ID:</small><br>
+                            <span class="small">${drug.id}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Trạng thái:</small><br>
+                            <span class="badge bg-${getStatusColor(drug.status)}">${drug.status}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted">Ngày sản xuất:</small><br>
+                            <span class="small">${formatDate(drug.manufactureDate)}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Hạn dùng:</small><br>
+                            <span class="small">${formatDate(drug.expiryDate)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                ${drug.description ? `
+                    <div class="mb-3">
+                        <small class="text-muted">Mô tả:</small><br>
+                        <span class="small">${drug.description}</span>
+                    </div>
+                ` : ''}
+
+                <div class="mb-3">
+                    <small class="text-muted">Địa chỉ:</small><br>
+                    <div class="small">
+                        <div>Manufacturer: <span class="font-monospace">${drug.manufacturerAddress}</span></div>
+                        ${drug.distributorAddress ? `<div>Distributor: <span class="font-monospace">${drug.distributorAddress}</span></div>` : ''}
+                        ${drug.pharmacyAddress ? `<div>Pharmacy: <span class="font-monospace">${drug.pharmacyAddress}</span></div>` : ''}
+                    </div>
+                </div>
+
+                ${drug.imageUrl ? `
+                    <div class="mb-3">
+                        <img src="${drug.imageUrl}" alt="Ảnh thuốc" class="img-fluid rounded" style="max-width: 200px;">
+                    </div>
+                ` : ''}
+
+                <div class="mb-3">
+                    <button class="btn btn-success" onclick="confirmReceived('${drug.batchNumber}')">
+                        <i class="bi bi-check-circle"></i> Xác nhận nhập kho
+                    </button>
+                </div>
+
+                <div class="mt-4">
+                    <h6>Lịch sử vận chuyển</h6>
+                    ${drug.milestones.length === 0 ? 
+                        '<div class="text-muted small">Chưa có mốc vận chuyển nào</div>' :
+                        `<div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Thời gian</th>
+                                        <th>Loại mốc</th>
+                                        <th>Mô tả</th>
+                                        <th>Vị trí</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${drug.milestones.map(m => `
+                                        <tr>
+                                            <td class="small">${new Date(m.timestamp).toLocaleString()}</td>
+                                            <td>${m.type}</td>
+                                            <td>${m.description || ''}</td>
+                                            <td>${m.location || ''}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>`
+                    }
+                </div>
+            `;
+        }
+
+        async function confirmReceived(batchNumber) {
+            if (!confirm('Bạn có chắc chắn muốn xác nhận nhập kho lô thuốc này?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Pharmacy/ConfirmReceived', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        batchNumber: batchNumber,
+                        pharmacyAddress: '0x...' // This should come from user context
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    // Reload drug info to show updated status
+                    lookupDrug();
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        function getStatusColor(status) {
+            switch (status.toLowerCase()) {
+                case 'created': return 'primary';
+                case 'in_transit': return 'warning';
+                case 'in_pharmacy': return 'success';
+                default: return 'secondary';
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            return new Date(dateString).toLocaleDateString('vi-VN');
+        }
+    </script>
+}

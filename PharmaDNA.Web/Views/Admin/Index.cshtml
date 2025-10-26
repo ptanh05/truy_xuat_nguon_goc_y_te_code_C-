@@ -1,0 +1,244 @@
+@model PharmaDNA.Web.Models.ViewModels.UserManagementViewModel
+
+@{
+    ViewData["Title"] = "Quản trị viên - Quản lý người dùng";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Quản lý người dùng</h1>
+            <p class="text-muted mb-4">Cấp quyền và quản lý vai trò người dùng trong hệ thống</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i> Danh sách người dùng
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Địa chỉ ví</th>
+                                    <th>Vai trò</th>
+                                    <th>Ngày cấp</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-plus"></i> Cấp quyền mới
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="assignRoleForm">
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ ví *</label>
+                            <input type="text" id="userAddress" class="form-control" placeholder="0x..." required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Vai trò *</label>
+                            <select id="userRole" class="form-select" required>
+                                <option value="">Chọn vai trò</option>
+                                <option value="MANUFACTURER">Nhà sản xuất</option>
+                                <option value="DISTRIBUTOR">Nhà phân phối</option>
+                                <option value="PHARMACY">Nhà thuốc</option>
+                                <option value="ADMIN">Quản trị viên</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-check-circle"></i> Cấp quyền
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i> Tự động cấp quyền
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        Tự động cấp quyền cho địa chỉ ví mới (người dùng đầu tiên sẽ được cấp quyền ADMIN)
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ ví</label>
+                        <input type="text" id="autoAssignAddress" class="form-control" placeholder="0x..." />
+                    </div>
+                    <button type="button" class="btn btn-outline-primary w-100" onclick="autoAssignRole()">
+                        <i class="bi bi-magic"></i> Tự động cấp quyền
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Load users
+        async function loadUsers() {
+            try {
+                const response = await fetch('/Admin/GetUsers');
+                const users = await response.json();
+                
+                const tbody = document.querySelector('#usersTable tbody');
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Chưa có người dùng nào</td></tr>';
+                } else {
+                    tbody.innerHTML = users.map(user => `
+                        <tr>
+                            <td class="font-monospace small">${user.address}</td>
+                            <td>
+                                <span class="badge bg-${getRoleColor(user.role)}">${getRoleName(user.role)}</span>
+                            </td>
+                            <td class="small">${new Date(user.assignedAt).toLocaleDateString('vi-VN')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="deleteUser('${user.address}')">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        // Assign role form
+        document.getElementById('assignRoleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const address = document.getElementById('userAddress').value;
+            const role = document.getElementById('userRole').value;
+            
+            if (!address || !role) {
+                alert('Vui lòng điền đầy đủ thông tin');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/AssignRole', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address, role })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    document.getElementById('assignRoleForm').reset();
+                    loadUsers();
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        });
+
+        // Auto assign role
+        async function autoAssignRole() {
+            const address = document.getElementById('autoAssignAddress').value;
+            if (!address) {
+                alert('Vui lòng nhập địa chỉ ví');
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/AutoAssignRole', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    document.getElementById('autoAssignAddress').value = '';
+                    loadUsers();
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        // Delete user
+        async function deleteUser(address) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa người dùng ${address}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/DeleteUser', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    loadUsers();
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        function getRoleColor(role) {
+            switch (role) {
+                case 'ADMIN': return 'danger';
+                case 'MANUFACTURER': return 'primary';
+                case 'DISTRIBUTOR': return 'success';
+                case 'PHARMACY': return 'warning';
+                default: return 'secondary';
+            }
+        }
+
+        function getRoleName(role) {
+            switch (role) {
+                case 'ADMIN': return 'Quản trị viên';
+                case 'MANUFACTURER': return 'Nhà sản xuất';
+                case 'DISTRIBUTOR': return 'Nhà phân phối';
+                case 'PHARMACY': return 'Nhà thuốc';
+                default: return role;
+            }
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+}

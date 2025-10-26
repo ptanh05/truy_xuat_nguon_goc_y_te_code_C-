@@ -1,0 +1,237 @@
+@model PharmaDNA.Web.Models.ViewModels.ManufacturerViewModel
+
+@{
+    ViewData["Title"] = "Nhà sản xuất - Tạo lô thuốc";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Tạo lô thuốc mới</h1>
+            <p class="text-muted mb-4">Nhập thông tin lô thuốc và mint NFT trên blockchain</p>
+        </div>
+    </div>
+
+    <form id="nftForm" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-box"></i> Thông tin lô thuốc
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="DrugName" class="form-label">Tên thuốc *</label>
+                            <input asp-for="DrugName" class="form-control" placeholder="Ví dụ: Paracetamol 500mg" required />
+                            <span asp-validation-for="DrugName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BatchNumber" class="form-label">Số lô *</label>
+                            <input asp-for="BatchNumber" class="form-control" placeholder="Ví dụ: LOT2024001" required />
+                            <span asp-validation-for="BatchNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="ManufacturingDate" class="form-label">Ngày sản xuất *</label>
+                                    <input asp-for="ManufacturingDate" type="date" class="form-control" required />
+                                    <span asp-validation-for="ManufacturingDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="ExpiryDate" class="form-label">Hạn dùng *</label>
+                                    <input asp-for="ExpiryDate" type="date" class="form-control" required />
+                                    <span asp-validation-for="ExpiryDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Mô tả</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="Thông tin bổ sung về lô thuốc..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Ảnh thuốc</label>
+                            <input type="file" name="DrugImage" accept="image/*" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Chứng chỉ (PDF)</label>
+                            <input type="file" name="Certificate" accept=".pdf" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-upload"></i> Tạo NFT
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="uploadStatus" class="alert" style="display: none;"></div>
+
+                        <button type="button" id="uploadBtn" class="btn btn-primary w-100 mb-3">
+                            <i class="bi bi-cloud-upload"></i> Upload lên IPFS & Database
+                        </button>
+
+                        <button type="button" id="mintBtn" class="btn btn-success w-100 mb-3" style="display: none;">
+                            <i class="bi bi-gem"></i> Mint NFT
+                        </button>
+
+                        <div id="resultInfo" style="display: none;">
+                            <div class="mb-3">
+                                <h6>IPFS Metadata Hash:</h6>
+                                <p id="ipfsHash" class="text-break small bg-light p-2 rounded"></p>
+                            </div>
+                            <div class="mb-3">
+                                <h6>Database ID:</h6>
+                                <p id="databaseId" class="small"></p>
+                            </div>
+                        </div>
+
+                        <div class="small text-muted">
+                            <p><strong>Bước 1:</strong> Upload metadata và files lên IPFS</p>
+                            <p><strong>Bước 2:</strong> Lưu thông tin vào database</p>
+                            <p><strong>Bước 3:</strong> Mint NFT với metadata IPFS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Transfer Requests Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3>Yêu cầu nhận lô chờ duyệt</h3>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="transferRequestsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lô thuốc (NFT)</th>
+                                    <th>Ví distributor</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', async function() {
+            const formData = new FormData(document.getElementById('nftForm'));
+            
+            try {
+                const response = await fetch('/Manufacturer/CreateNFT', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('uploadStatus').className = 'alert alert-success';
+                    document.getElementById('uploadStatus').textContent = result.message;
+                    document.getElementById('uploadStatus').style.display = 'block';
+                    
+                    document.getElementById('ipfsHash').textContent = result.ipfsHash;
+                    document.getElementById('databaseId').textContent = result.nftId;
+                    document.getElementById('resultInfo').style.display = 'block';
+                    document.getElementById('mintBtn').style.display = 'block';
+                    document.getElementById('uploadBtn').style.display = 'none';
+                } else {
+                    document.getElementById('uploadStatus').className = 'alert alert-danger';
+                    document.getElementById('uploadStatus').textContent = result.error;
+                    document.getElementById('uploadStatus').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('uploadStatus').className = 'alert alert-danger';
+                document.getElementById('uploadStatus').textContent = 'Có lỗi xảy ra: ' + error.message;
+                document.getElementById('uploadStatus').style.display = 'block';
+            }
+        });
+
+        // Load transfer requests
+        async function loadTransferRequests() {
+            try {
+                const response = await fetch('/Manufacturer/GetTransferRequests');
+                const requests = await response.json();
+                
+                const tbody = document.querySelector('#transferRequestsTable tbody');
+                if (requests.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Không có yêu cầu nào</td></tr>';
+                } else {
+                    tbody.innerHTML = requests.map(req => `
+                        <tr>
+                            <td>${req.id}</td>
+                            <td>#${req.nftId}</td>
+                            <td class="font-monospace small">${req.distributorAddress}</td>
+                            <td>
+                                ${req.status === 'approved' ? 
+                                    '<span class="badge bg-success">Đã được chấp thuận</span>' : 
+                                    '<span class="badge bg-warning">Chờ duyệt</span>'
+                                }
+                            </td>
+                            <td>
+                                ${req.status === 'pending' ? 
+                                    `<button class="btn btn-sm btn-success" onclick="approveTransfer(${req.id}, ${req.nftId}, '${req.distributorAddress}')">Chấp thuận</button>` : 
+                                    ''
+                                }
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading transfer requests:', error);
+            }
+        }
+
+        async function approveTransfer(requestId, nftId, distributorAddress) {
+            try {
+                const response = await fetch('/Manufacturer/ApproveTransfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ requestId, nftId, distributorAddress })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Chấp thuận thành công!');
+                    loadTransferRequests();
+                } else {
+                    alert('Chấp thuận thất bại: ' + result.error);
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra: ' + error.message);
+            }
+        }
+
+        // Load transfer requests on page load
+        loadTransferRequests();
+    </script>
+}
