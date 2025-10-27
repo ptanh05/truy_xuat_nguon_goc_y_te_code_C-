@@ -14,10 +14,8 @@ namespace PharmaDNA.Web.Services
         {
             _httpClient = httpClient;
             _pinataJwt = Environment.GetEnvironmentVariable("PINATA_JWT") 
-                ?? configuration["IPFS:PinataJWT"] 
-                ?? throw new InvalidOperationException("PINATA_JWT not configured");
+                ?? throw new InvalidOperationException("PINATA_JWT environment variable not configured");
             _gatewayUrl = Environment.GetEnvironmentVariable("PINATA_GATEWAY") 
-                ?? configuration["IPFS:GatewayUrl"] 
                 ?? "https://gateway.pinata.cloud/ipfs/";
             _logger = logger;
         }

@@ -82,13 +82,35 @@ cd truy_xuat_nguon_goc_y_te_code_C-
 
 ### 5. Tạo file .env
 
-Copy file `env.example` thành `.env` trong thư mục `PharmaDNA.Web/`:
+**Cách 1: Sử dụng script tự động (Khuyến nghị)**
+```bash
+# Windows
+setup.bat
 
+# Linux/Mac
+chmod +x setup.sh
+./setup.sh
+```
+
+**Cách 2: Tạo thủ công**
+```bash
+# Copy file mẫu
+cp env.example PharmaDNA.Web/.env
+
+# Chỉnh sửa file .env
+# Windows
+notepad PharmaDNA.Web\.env
+
+# Linux/Mac
+nano PharmaDNA.Web/.env
+```
+
+**Cấu hình bắt buộc trong file .env:**
 ```env
 # Database Configuration
 DATABASE_URL=postgresql://user:password@host:5432/database
 
-# Pinata IPFS Configuration
+# Pinata IPFS Configuration  
 PINATA_JWT=Bearer YOUR_JWT_TOKEN
 PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
 

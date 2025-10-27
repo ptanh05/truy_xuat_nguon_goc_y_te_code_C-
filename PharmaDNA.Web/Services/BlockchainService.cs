@@ -12,6 +12,8 @@ namespace PharmaDNA.Web.Services
         private readonly string _contractAddress;
         private readonly string _privateKey;
         private readonly ILogger<BlockchainService> _logger;
+        private readonly int _maxRetries = 3;
+        private readonly int _retryDelayMs = 1000;
 
         public BlockchainService(IConfiguration configuration, ILogger<BlockchainService> logger)
         {
@@ -21,6 +23,11 @@ namespace PharmaDNA.Web.Services
                 ?? configuration["Blockchain:ContractAddress"];
             var privateKey = Environment.GetEnvironmentVariable("OWNER_PRIVATE_KEY") 
                 ?? configuration["Blockchain:PrivateKey"];
+            
+            if (string.IsNullOrEmpty(rpcUrl) || string.IsNullOrEmpty(contractAddress) || string.IsNullOrEmpty(privateKey))
+            {
+                throw new InvalidOperationException("Blockchain configuration is incomplete. Please check your .env file.");
+            }
             
             _web3 = new Web3(rpcUrl);
             _contractAddress = contractAddress;
@@ -166,19 +173,15 @@ namespace PharmaDNA.Web.Services
 
         private string GetDefaultABI()
         {
-            // This should contain the actual ABI from the smart contract
-            return @"[
-                {
-                    ""inputs"": [
-                        {""internalType"": ""address"", ""name"": ""user"", ""type"": ""address""},
-                        {""internalType"": ""uint8"", ""name"": ""role"", ""type"": ""uint8""}
-                    ],
-                    ""name"": ""assignRole"",
-                    ""outputs"": [],
-                    ""stateMutability"": ""nonpayable"",
-                    ""type"": ""function""
-                }
-            ]";
+            // Load ABI from environment variable or file
+            var abiFromEnv = Environment.GetEnvironmentVariable("PHARMA_NFT_ABI");
+            if (!string.IsNullOrEmpty(abiFromEnv))
+            {
+                return abiFromEnv;
+            }
+
+            // Fallback to empty ABI - will be loaded from file
+            return "[]";
         }
     }
 }

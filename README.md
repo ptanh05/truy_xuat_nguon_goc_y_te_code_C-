@@ -240,29 +240,49 @@ CREATE TABLE milestones (
 
 ## 📝 API Endpoints
 
-### Manufacturer
+### Web Controllers
 
+#### Manufacturer
 - `POST /Manufacturer/CreateNFT` - Tạo NFT mới
 - `GET /Manufacturer/GetNFTs` - Lấy danh sách NFT
 - `POST /Manufacturer/ApproveTransfer` - Duyệt yêu cầu chuyển
 
-### Distributor
-
+#### Distributor
 - `GET /Distributor/GetNFTs` - Lấy lô đang vận chuyển
 - `POST /Distributor/UploadSensorData` - Upload dữ liệu cảm biến
 - `POST /Distributor/RequestTransfer` - Tạo yêu cầu chuyển
 
-### Pharmacy
-
+#### Pharmacy
 - `GET /Pharmacy/LookupDrug?batchNumber=xxx` - Tra cứu thuốc
 - `POST /Pharmacy/ConfirmReceived` - Xác nhận nhập kho
 - `GET /Pharmacy/GetTransferRequests` - Lấy danh sách yêu cầu
 
-### Admin
-
+#### Admin
 - `POST /Admin/AssignRole` - Phân quyền người dùng
 - `DELETE /Admin/DeleteUser` - Xóa người dùng
 - `GET /Admin/GetUsers` - Lấy danh sách users
+
+### REST API (Mobile/External)
+
+#### Drug Lookup
+- `GET /api/lookup/{batchNumber}` - Tra cứu thuốc
+- `GET /api/nfts` - Lấy danh sách NFTs
+- `POST /api/nfts` - Tạo NFT mới
+
+#### Milestones
+- `GET /api/nfts/{id}/milestones` - Lấy milestones
+- `POST /api/nfts/{id}/milestones` - Thêm milestone
+
+#### Users
+- `GET /api/users/{address}` - Lấy thông tin user
+
+#### Health Check
+- `GET /api/health` - Health check chi tiết
+- `GET /api/health/ready` - Readiness check
+- `GET /api/health/live` - Liveness check
+
+### Swagger Documentation
+- `GET /api-docs` - Swagger UI (Development only)
 
 ## 🧪 Testing
 
