@@ -20,5 +20,8 @@ namespace PharmaDNA.Web.Services
         Task<List<MilestoneInfo>> GetMilestonesByNftIdAsync(int nftId);
         Task<List<MilestoneInfo>> GetMilestonesByBatchNumberAsync(string batchNumber);
         Task<bool> UpdateSensorDataAsync(int nftId, string sensorIpfsHash);
+        Task<bool> UpdateTransferRequestStatusAsync(int requestId, string status, DateTime updatedAt);
+        Task<List<NFTDto>> GetNFTsByNameAsync(string name);
+        Task<bool> DeleteTransferRequestAsync(int requestId, string distributorAddress);
     }
 }

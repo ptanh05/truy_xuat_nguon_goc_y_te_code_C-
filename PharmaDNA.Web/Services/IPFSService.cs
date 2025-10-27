@@ -13,8 +13,12 @@ namespace PharmaDNA.Web.Services
         public IPFSService(HttpClient httpClient, IConfiguration configuration, ILogger<IPFSService> logger)
         {
             _httpClient = httpClient;
-            _pinataJwt = configuration["IPFS:PinataJWT"] ?? throw new InvalidOperationException("PinataJWT not configured");
-            _gatewayUrl = configuration["IPFS:GatewayUrl"] ?? "https://gateway.pinata.cloud/ipfs/";
+            _pinataJwt = Environment.GetEnvironmentVariable("PINATA_JWT") 
+                ?? configuration["IPFS:PinataJWT"] 
+                ?? throw new InvalidOperationException("PINATA_JWT not configured");
+            _gatewayUrl = Environment.GetEnvironmentVariable("PINATA_GATEWAY") 
+                ?? configuration["IPFS:GatewayUrl"] 
+                ?? "https://gateway.pinata.cloud/ipfs/";
             _logger = logger;
         }
 
@@ -36,14 +40,23 @@ namespace PharmaDNA.Web.Services
                 };
 
                 var json = JsonConvert.SerializeObject(metadata, Formatting.Indented);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var formData = new MultipartFormDataContent();
-                formData.Add(content, "file", "metadata.json");
-
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.pinata.cloud/pinning/pinFileToIPFS")
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.pinata.cloud/pinning/pinJSONToIPFS")
                 {
-                    Content = formData
+                    Content = new StringContent(JsonConvert.SerializeObject(new
+                    {
+                        pinataContent = metadata,
+                        pinataMetadata = new
+                        {
+                            name = $"{model.DrugName}-{model.BatchNumber}-metadata",
+                            keyvalues = new
+                            {
+                                drugName = model.DrugName,
+                                batchNumber = model.BatchNumber,
+                                type = "drug-metadata"
+                            }
+                        }
+                    }), System.Text.Encoding.UTF8, "application/json")
                 };
                 request.Headers.Add("Authorization", $"Bearer {_pinataJwt}");
 
@@ -65,6 +78,66 @@ namespace PharmaDNA.Web.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading metadata to IPFS");
+                throw;
+            }
+        }
+
+        public async Task<string> UploadMetadataWithFilesAsync(ManufacturerViewModel model, IFormFile? drugImage, IFormFile? certificate)
+        {
+            try
+            {
+                var uploadedFiles = new List<string>();
+
+                // Upload drug image if provided
+                if (drugImage != null && drugImage.Length > 0)
+                {
+                    try
+                    {
+                        var imageHash = await UploadFileAsync(drugImage);
+                        uploadedFiles.Add($"ipfs/{imageHash}");
+                        _logger.LogInformation($"Drug image uploaded to IPFS: {imageHash}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error uploading drug image");
+                    }
+                }
+
+                // Upload certificate if provided
+                if (certificate != null && certificate.Length > 0)
+                {
+                    try
+                    {
+                        var certHash = await UploadFileAsync(certificate);
+                        uploadedFiles.Add($"ipfs/{certHash}");
+                        _logger.LogInformation($"Certificate uploaded to IPFS: {certHash}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error uploading certificate");
+                    }
+                }
+
+                // Create metadata
+                var metadata = new
+                {
+                    drugName = model.DrugName,
+                    batchNumber = model.BatchNumber,
+                    manufacturingDate = model.ManufacturingDate.ToString("yyyy-MM-dd"),
+                    expiryDate = model.ExpiryDate.ToString("yyyy-MM-dd"),
+                    description = model.Description,
+                    manufacturerAddress = model.ManufacturerAddress,
+                    timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    files = uploadedFiles,
+                    version = "1.0"
+                };
+
+                // Upload metadata to IPFS
+                return await UploadMetadataAsync(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading metadata with files to IPFS");
                 throw;
             }
         }
@@ -147,9 +220,23 @@ namespace PharmaDNA.Web.Services
             }
         }
 
-        public string GetFileUrlAsync(string hash)
+        public Task<string> GetFileUrlAsync(string hash)
         {
-            return $"{_gatewayUrl}{hash}";
+            return Task.FromResult($"{_gatewayUrl}{hash}");
+        }
+
+        public async Task<bool> VerifyIPFSHashAsync(string hash)
+        {
+            try
+            {
+                var url = await GetFileUrlAsync(hash);
+                var response = await _httpClient.GetAsync(url);
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

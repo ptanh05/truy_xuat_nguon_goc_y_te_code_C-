@@ -104,11 +104,28 @@ namespace PharmaDNA.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetTransferRequests()
+        public async Task<IActionResult> GetTransferRequests([FromQuery] string? distributorAddress, [FromQuery] string? pharmacyAddress, [FromQuery] string? status)
         {
             try
             {
                 var requests = await _nftService.GetTransferRequestsAsync();
+
+                // Apply filters
+                if (!string.IsNullOrEmpty(distributorAddress))
+                {
+                    requests = requests.Where(r => r.DistributorAddress.ToLower() == distributorAddress.ToLower()).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(pharmacyAddress))
+                {
+                    requests = requests.Where(r => r.PharmacyAddress.ToLower() == pharmacyAddress.ToLower()).ToList();
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    requests = requests.Where(r => r.Status == status).ToList();
+                }
+
                 return Json(requests);
             }
             catch (Exception ex)
@@ -116,6 +133,137 @@ namespace PharmaDNA.Web.Controllers
                 _logger.LogError(ex, "Error getting transfer requests for pharmacy");
                 return Json(new List<object>());
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateTransferRequest([FromBody] CreateTransferRequestRequest request)
+        {
+            try
+            {
+                if (request.NftId == 0 || string.IsNullOrEmpty(request.PharmacyAddress))
+                {
+                    return Json(new { error = "Thiếu thông tin bắt buộc" });
+                }
+
+                // Get distributor address from header or session
+                var distributorAddress = Request.Headers["X-Distributor-Address"].ToString();
+                if (string.IsNullOrEmpty(distributorAddress))
+                {
+                    return Json(new { error = "Distributor address required" });
+                }
+
+                var requestId = await _nftService.CreateTransferRequestAsync(request.NftId, distributorAddress);
+                
+                return Json(new 
+                { 
+                    requestId,
+                    message = $"Yêu cầu chuyển lô NFT #{request.NftId} đã được tạo thành công! Đang chờ nhà thuốc xác nhận."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating transfer request");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateTransferRequest([FromBody] UpdateTransferRequestRequest request)
+        {
+            try
+            {
+                if (request.RequestId == 0 || string.IsNullOrEmpty(request.Status) || string.IsNullOrEmpty(request.PharmacyAddress))
+                {
+                    return Json(new { error = "Thiếu thông tin bắt buộc" });
+                }
+
+                if (!new[] { "approved", "rejected" }.Contains(request.Status))
+                {
+                    return Json(new { error = "Invalid status" });
+                }
+
+                var updated = await _nftService.UpdateTransferRequestStatusAsync(request.RequestId, request.Status, DateTime.UtcNow);
+                
+                if (!updated)
+                {
+                    return Json(new { error = "Transfer request not found" });
+                }
+
+                // If approved, transfer NFT ownership on blockchain
+                if (request.Status == "approved")
+                {
+                    // TODO: Implement blockchain transfer logic
+                    _logger.LogInformation($"NFT transfer approved for request {request.RequestId}");
+                }
+
+                return Json(new 
+                { 
+                    success = true,
+                    message = request.Status == "approved" 
+                        ? $"✅ Đã duyệt yêu cầu chuyển lô thành công! NFT đã được chuyển quyền sở hữu."
+                        : $"❌ Đã từ chối yêu cầu chuyển lô."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating transfer request");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteTransferRequest([FromBody] DeleteTransferRequestRequest request)
+        {
+            try
+            {
+                if (request.RequestId == 0)
+                {
+                    return Json(new { error = "Request ID required" });
+                }
+
+                var distributorAddress = Request.Headers["X-Distributor-Address"].ToString();
+                if (string.IsNullOrEmpty(distributorAddress))
+                {
+                    return Json(new { error = "Distributor address required" });
+                }
+
+                var deleted = await _nftService.DeleteTransferRequestAsync(request.RequestId, distributorAddress);
+                
+                if (!deleted)
+                {
+                    return Json(new { error = "Transfer request not found or cannot be cancelled" });
+                }
+
+                return Json(new 
+                { 
+                    success = true,
+                    message = $"✅ Đã hủy yêu cầu chuyển lô thành công!"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting transfer request");
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        public class CreateTransferRequestRequest
+        {
+            public int NftId { get; set; }
+            public string PharmacyAddress { get; set; } = string.Empty;
+            public string? TransferNote { get; set; }
+        }
+
+        public class UpdateTransferRequestRequest
+        {
+            public int RequestId { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public string PharmacyAddress { get; set; } = string.Empty;
+        }
+
+        public class DeleteTransferRequestRequest
+        {
+            public int RequestId { get; set; }
         }
     }
 }

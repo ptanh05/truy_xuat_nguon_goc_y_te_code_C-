@@ -4,6 +4,23 @@ using PharmaDNA.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables from .env file
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envPath))
+{
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+            continue;
+            
+        var parts = line.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            Environment.SetEnvironmentVariable(parts[0].Trim(), parts[1].Trim());
+        }
+    }
+}
+
 // Add services to the container
 builder.Services.AddControllersWithViews()
     .AddNewtonsoftJson(options =>
@@ -11,9 +28,12 @@ builder.Services.AddControllersWithViews()
         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
     });
 
-// Database configuration
+// Database configuration with environment variable
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Register services
 builder.Services.AddScoped<IBlockchainService, BlockchainService>();

@@ -339,6 +339,68 @@ namespace PharmaDNA.Web.Services
             }
         }
 
+        public async Task<bool> UpdateTransferRequestStatusAsync(int requestId, string status, DateTime updatedAt)
+        {
+            try
+            {
+                var request = await _context.TransferRequests.FindAsync(requestId);
+                if (request == null) return false;
+
+                request.Status = status;
+                request.UpdatedAt = updatedAt;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Transfer request {requestId} status updated to {status}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating transfer request {requestId} status");
+                return false;
+            }
+        }
+
+        public async Task<List<NFTDto>> GetNFTsByNameAsync(string name)
+        {
+            try
+            {
+                var nfts = await _context.NFTs
+                    .Where(n => n.Name.ToLower().Contains(name.ToLower()))
+                    .Take(1)
+                    .ToListAsync();
+                return nfts.Select(MapToDto).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting NFTs by name: {name}");
+                return new List<NFTDto>();
+            }
+        }
+
+        public async Task<bool> DeleteTransferRequestAsync(int requestId, string distributorAddress)
+        {
+            try
+            {
+                var request = await _context.TransferRequests
+                    .FirstOrDefaultAsync(r => r.Id == requestId && 
+                                              r.DistributorAddress.ToLower() == distributorAddress.ToLower() && 
+                                              r.Status == "pending");
+
+                if (request == null) return false;
+
+                _context.TransferRequests.Remove(request);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Transfer request {requestId} deleted by distributor {distributorAddress}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting transfer request {requestId}");
+                return false;
+            }
+        }
+
         private NFTDto MapToDto(Models.Entities.NFT nft)
         {
             return new NFTDto

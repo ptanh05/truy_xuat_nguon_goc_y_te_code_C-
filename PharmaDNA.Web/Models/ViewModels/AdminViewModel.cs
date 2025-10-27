@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using PharmaDNA.Web.Models.DTOs;
 
 namespace PharmaDNA.Web.Models.ViewModels
 {

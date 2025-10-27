@@ -1,248 +1,119 @@
-// PharmaDNA Web Application JavaScript
+// PharmaDNA - Site-wide JavaScript
 
-// Global variables
-let currentUser = null;
-let selectedNFT = null;
-
-// Initialize application
+// Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+    // Initialize Bootstrap tooltips if available
+    if (typeof bootstrap !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
 });
 
-function initializeApp() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Initialize popovers
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('Đã sao chép vào clipboard!', 'success');
+    }, function(err) {
+        console.error('Could not copy text: ', err);
+        showToast('Không thể sao chép', 'error');
     });
 }
 
-// Utility functions
-function showAlert(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+// Show toast notification
+function showToast(message, type = 'info') {
+    // Simple toast implementation
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
     `;
     
-    // Insert at the top of the main content
-    const main = document.querySelector('main');
-    if (main) {
-        main.insertBefore(alertDiv, main.firstChild);
+    // Add toast to page
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
     }
-}
-
-function showLoading(element) {
-    if (element) {
-        element.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    }
-}
-
-function hideLoading(element, originalContent) {
-    if (element && originalContent) {
-        element.innerHTML = originalContent;
-    }
-}
-
-// API helper functions
-async function apiCall(url, options = {}) {
-    try {
-        const response = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        console.error('API call failed:', error);
-        throw error;
-    }
-}
-
-// Form validation
-function validateForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) return false;
     
-    const requiredFields = form.querySelectorAll('[required]');
-    let isValid = true;
+    toastContainer.appendChild(toast);
     
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            field.classList.add('is-invalid');
-            isValid = false;
-        } else {
-            field.classList.remove('is-invalid');
-        }
+    // Show toast
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    // Remove after hiding
+    toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
     });
-    
-    return isValid;
 }
 
-// Address formatting
+// Format Ethereum address
 function formatAddress(address) {
-    if (!address) return '';
+    if (!address || address.length < 10) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-// Date formatting
+// Format date
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('vi-VN');
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
 }
 
+// Format datetime
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN');
-}
-
-// Status color mapping
-function getStatusColor(status) {
-    const statusMap = {
-        'created': 'primary',
-        'in_transit': 'warning',
-        'in_pharmacy': 'success',
-        'pending': 'secondary',
-        'approved': 'success',
-        'rejected': 'danger'
-    };
-    return statusMap[status?.toLowerCase()] || 'secondary';
-}
-
-// Role color mapping
-function getRoleColor(role) {
-    const roleMap = {
-        'admin': 'danger',
-        'manufacturer': 'primary',
-        'distributor': 'success',
-        'pharmacy': 'warning'
-    };
-    return roleMap[role?.toLowerCase()] || 'secondary';
-}
-
-// Role name mapping
-function getRoleName(role) {
-    const roleMap = {
-        'admin': 'Quản trị viên',
-        'manufacturer': 'Nhà sản xuất',
-        'distributor': 'Nhà phân phối',
-        'pharmacy': 'Nhà thuốc'
-    };
-    return roleMap[role?.toLowerCase()] || role;
-}
-
-// File upload helpers
-function handleFileUpload(input, callback) {
-    if (input.files && input.files[0]) {
-        const file = input.files[0];
-        callback(file);
-    }
-}
-
-function validateFileType(file, allowedTypes) {
-    return allowedTypes.includes(file.type);
-}
-
-function validateFileSize(file, maxSizeMB) {
-    return file.size <= maxSizeMB * 1024 * 1024;
-}
-
-// Table helpers
-function createTableRow(data, columns) {
-    const row = document.createElement('tr');
-    columns.forEach(column => {
-        const cell = document.createElement('td');
-        if (column.render) {
-            cell.innerHTML = column.render(data[column.key]);
-        } else {
-            cell.textContent = data[column.key] || '';
-        }
-        row.appendChild(cell);
-    });
-    return row;
-}
-
-// Modal helpers
-function showModal(modalId) {
-    const modal = new bootstrap.Modal(document.getElementById(modalId));
-    modal.show();
-}
-
-function hideModal(modalId) {
-    const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
-    if (modal) {
-        modal.hide();
-    }
-}
-
-// QR Code scanner (placeholder)
-function startQRScanner(callback) {
-    // This would integrate with a QR scanner library like QuaggaJS or ZXing
-    console.log('QR Scanner would be implemented here');
-    // For now, simulate a scan
-    setTimeout(() => {
-        if (callback) {
-            callback('LOT2024001'); // Simulated QR code result
-        }
-    }, 2000);
-}
-
-// Blockchain helpers
-function connectWallet() {
-    // This would integrate with MetaMask or other wallet providers
-    console.log('Wallet connection would be implemented here');
-    return Promise.resolve({
-        address: '0x1234567890123456789012345678901234567890',
-        chainId: 1
+    const date = new Date(dateString);
+    return date.toLocaleString('vi-VN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
     });
 }
 
-// IPFS helpers
-function getIPFSUrl(hash) {
-    return `https://gateway.pinata.cloud/ipfs/${hash}`;
+// Loading state
+function setLoading(element, loading) {
+    if (loading) {
+        element.disabled = true;
+        const originalText = element.innerHTML;
+        element.setAttribute('data-original-text', originalText);
+        element.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang xử lý...';
+    } else {
+        element.disabled = false;
+        const originalText = element.getAttribute('data-original-text');
+        if (originalText) {
+            element.innerHTML = originalText;
+            element.removeAttribute('data-original-text');
+        }
+    }
 }
 
-// Error handling
-function handleError(error, context = '') {
-    console.error(`Error in ${context}:`, error);
-    showAlert(`Có lỗi xảy ra: ${error.message}`, 'danger');
+// Confirm action
+function confirmAction(message, callback) {
+    if (confirm(message)) {
+        callback();
+    }
 }
 
-// Export functions for global use
-window.PharmaDNA = {
-    showAlert,
-    showLoading,
-    hideLoading,
-    apiCall,
-    validateForm,
-    formatAddress,
-    formatDate,
-    formatDateTime,
-    getStatusColor,
-    getRoleColor,
-    getRoleName,
-    handleFileUpload,
-    validateFileType,
-    validateFileSize,
-    createTableRow,
-    showModal,
-    hideModal,
-    startQRScanner,
-    connectWallet,
-    getIPFSUrl,
-    handleError
-};
+// Check if running in development
+function isDevelopment() {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}

@@ -1,120 +1,280 @@
-# PharmaDNA
+# PharmaDNA - Hệ Thống Truy Xuất Nguồn Gốc Dược Phẩm
 
-PharmaDNA là hệ thống truy xuất nguồn gốc thuốc sử dụng Blockchain (PharmaDNA chainlet), AIoT và NFT để đảm bảo minh bạch, xác thực và quản lý chuỗi cung ứng dược phẩm.
+## 📋 Tổng Quan
 
-## Chức năng chính
+Hệ thống truy xuất nguồn gốc dược phẩm sử dụng Blockchain và IPFS để quản lý vòng đời sản phẩm từ nhà sản xuất → nhà phân phối → nhà thuốc.
 
-- **Mint NFT cho lô thuốc**: Mỗi lô thuốc là một NFT duy nhất, lưu metadata trên IPFS.
-- **Quản lý vận chuyển**: Nhà phân phối nhận lô, upload dữ liệu cảm biến, cập nhật trạng thái vận chuyển.
-- **Nhà thuốc xác nhận nhập kho**: Quét QR hoặc nhập ID để xác minh và xác nhận nhập kho.
-- **Quản trị viên**: Cấp quyền vai trò cho các ví trên contract và đồng bộ với backend.
-- **Lịch sử vận chuyển**: Lưu và hiển thị các mốc vận chuyển (milestones) của từng lô thuốc.
+### ✨ Tính Năng Chính
 
-## Cấu trúc thư mục
+- 🏭 **Manufacturer (Nhà Sản Xuất)**
+
+  - Tạo NFT cho lô thuốc
+  - Upload ảnh sản phẩm, chứng nhận lên IPFS
+  - Xem danh sách NFT đã tạo
+  - Duyệt yêu cầu chuyển từ distributor
+
+- 🚚 **Distributor (Nhà Phân Phối)**
+
+  - Upload dữ liệu cảm biến (AIoT)
+  - Xem danh sách lô đang vận chuyển
+  - Tạo yêu cầu chuyển lô
+  - Theo dõi milestones
+
+- 💊 **Pharmacy (Nhà Thuốc)**
+
+  - Tra cứu thông tin thuốc bằng số lô
+  - Xem toàn bộ lịch sử vận chuyển
+  - Xác nhận nhập kho
+  - Quản lý transfer requests
+
+- 👤 **Admin**
+  - Quản lý người dùng và phân quyền
+  - Gán role trên blockchain
+  - Xem thống kê hệ thống
+
+## 🏗️ Kiến Trúc
+
+### Dự án C# MVC - PharmaDNA.Web
 
 ```
-Pharma_DNA_saga_2025/
-  app/                 # Next.js frontend & API routes
-    manufacturer/      # Trang nhà sản xuất (mint NFT)
-    distributor/       # Trang nhà phân phối (quản lý vận chuyển)
-    pharmacy/          # Trang nhà thuốc (quét, xác nhận nhập kho)
-    admin/             # Trang quản trị viên
-    api/               # API backend (Next.js route handlers)
-      manufacturer/    # API cho nhà sản xuất, milestone, transfer-request
-      distributor/     # API cho nhà phân phối
-      ...
-  saga-contract/       # Smart contract (Solidity, Hardhat)
-  lib/                 # ABI, utils, db
-  hooks/               # Custom React hooks
-  components/          # UI components
-  public/              # Ảnh, logo
-  ...
+PharmaDNA.Web/
+├── Controllers/          # Controllers cho các roles
+│   ├── AdminController.cs
+│   ├── ManufacturerController.cs
+│   ├── DistributorController.cs
+│   ├── PharmacyController.cs
+│   ├── LookupController.cs
+│   └── HomeController.cs
+├── Services/             # Business logic
+│   ├── BlockchainService.cs    # Tương tác với smart contract
+│   ├── IPFSService.cs          # Upload/Download IPFS
+│   ├── NFTService.cs           # Quản lý NFT trong DB
+│   └── UserService.cs          # Quản lý users
+├── Models/               # Data models
+│   ├── Entities/        # Entity Framework entities
+│   ├── DTOs/           # Data transfer objects
+│   └── ViewModels/     # View models
+├── Views/              # Razor views
+├── wwwroot/            # Static files
+│   ├── contracts/     # Smart contract ABIs
+│   ├── css/          # Tailwind CSS
+│   └── images/       # Images
+├── Contracts/         # Smart contract source (.sol)
+└── Database/          # SQL scripts
+
 ```
 
-## Cài đặt & chạy local
+### Dự án Smart Contract - saga-contract
 
-1. **Clone repo**
-2. Cài dependencies:
-   ```bash
-   npm install
-   # hoặc pnpm install
-   ```
-3. Tạo file `.env` với các biến:
-   DATABASE_URL=
+```
+saga-contract/
+├── contracts/
+│   └── PharmaNFT.sol    # Smart contract chính
+├── scripts/
+│   └── deployPharmaNFT.ts
+└── deploy-pharmadna.bat
+```
 
-   **PharmaDNA Chainlet Details:**
+## 🚀 Cài Đặt và Chạy
 
-   - Chain ID: `2759821881746000` (0x9ce0b1ae7a250)
-   - RPC URL: `https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io`
-   - Block Explorer: `https://pharmadna-2759821881746000-1.sagaexplorer.io`
-   - Native Currency: `PDNA`
+### Yêu Cầu
 
-4. Chạy migrate DB nếu cần (PostgreSQL)
-5. Chạy app:
-   ```bash
-   npm run dev
-   # hoặc pnpm dev
-   ```
-6. Chạy smart contract (Hardhat):
-   ```bash
-   cd saga-contract
-   npm install
-   npx hardhat compile
-   # Deploy contract lên PharmaDNA chainlet
-   npx hardhat run scripts/deployPharmaNFT.ts --network pharmadna
-   # Hoặc sử dụng script có sẵn (Windows)
-   deploy-pharmadna.bat
-   ```
+- .NET 8.0 SDK
+- Node.js (cho Tailwind CSS)
+- PostgreSQL (Neon.tech)
+- MetaMask (kết nối với PharmaDNA chainlet)
 
-## Các vai trò & luồng chính
+### Biến Môi Trường
 
-- **Manufacturer**: Mint NFT, upload metadata, chỉ mint được khi có quyền trên contract.
-- **Distributor**: Nhận lô đã được chấp thuận, upload dữ liệu cảm biến, cập nhật milestone.
-- **Pharmacy**: Quét QR hoặc nhập ID, xác nhận nhập kho (milestone "Đã nhập kho").
-- **Admin**: Cấp quyền cho ví, đồng bộ quyền lên contract (gọi assignRole).
+Tạo file `.env` hoặc thiết lập biến môi trường hệ thống:
 
-## Lưu ý đặc biệt
+```env
+DATABASE_URL=postgresql://...    # Connection string từ Neon.tech
+PINATA_JWT=Bearer ...            # JWT token từ Pinata
+PHARMA_NFT_ADDRESS=0x...         # Địa chỉ contract đã deploy
+OWNER_PRIVATE_KEY=0x...          # Private key để sign transactions
+PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
+PHARMADNA_RPC=https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io
+```
 
-- FE/BE chỉ cho phép thao tác khi ví có đúng quyền trên contract (kiểm tra trực tiếp on-chain).
-- Mọi upload file đều lưu lên IPFS qua Pinata.
-- Milestone lưu vào bảng `milestones` (PostgreSQL).
-- Địa chỉ contract, private key, Pinata JWT phải bảo mật trong `.env`.
-- Đảm bảo contract đã deploy đúng version, đúng enum Role.
+### Chạy Dự Án C# MVC
 
-## Các lệnh chính
+**Cách 1: Sử dụng file run.bat**
 
-- `npm run dev` — Chạy frontend/backend Next.js
-- `npx hardhat run scripts/deployPharmaNFT.ts --network pharmadna` — Deploy contract
-- `npx hardhat compile` — Compile contract
+```bash
+cd PharmaDNA.Web
+run.bat
+```
 
-## Contract API (PharmaNFT)
+**Cách 2: Chạy trực tiếp**
 
-- Roles:
+```bash
+cd PharmaDNA.Web
+dotnet restore
+dotnet build
+dotnet run
+```
 
-  - `assignRole(address user, Role role)` — Owner only
-  - `revokeRole(address user)` — Owner only
-  - `batchAssignRoles(address[] users, Role[] roles)` — Owner only
-  - `roles(address) -> Role` — Public getter (giữ tương thích FE)
-  - `hasRole(address user, Role role) -> bool`
-  - `getRole(address user) -> Role`
+Mở trình duyệt tại: `https://localhost:5001` hoặc `http://localhost:5000`
 
-- NFT lifecycle:
+### Build Tailwind CSS
 
-  - `mintProductNFT(string uri) -> uint256` — Chỉ Manufacturer, khi không bị pause
-  - `transferProductNFT(uint256 tokenId, address to)` — Chỉ chủ token, người nhận phải có role
-  - `getProductHistory(uint256 tokenId) -> address[]`
-  - `getProductCurrentOwner(uint256 tokenId) -> address`
+```bash
+cd PharmaDNA.Web
+npm install
+npm run build-css
+```
 
-- Admin controls:
-  - `pause()` / `unpause()` — Owner only
+## 🔗 Blockchain
 
-Enum `Role { None, Manufacturer, Distributor, Pharmacy, Admin }`
+### Network: PharmaDNA Chainlet (Saga)
 
-## Đóng góp & phát triển
+- **Chain ID**: 2759821881746000 (0x9ce0b1ae7a250)
+- **RPC**: https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io
+- **Explorer**: https://pharmadna-2759821881746000-1.sagaexplorer.io
 
-- Fork, PR, issue đều welcome!
-- Đọc kỹ code trong `app/api/` và `saga-contract/` để hiểu luồng nghiệp vụ.
+### Deploy Smart Contract
 
----
+```bash
+cd saga-contract
+deploy-pharmadna.bat
+```
 
-Mọi thắc mắc vui lòng liên hệ admin dự án hoặc tạo issue trên repo!
+Sau khi deploy, cập nhật `PHARMA_NFT_ADDRESS` trong file `.env`.
+
+### Roles
+
+- `MANUFACTURER` = 1
+- `DISTRIBUTOR` = 2
+- `PHARMACY` = 3
+- `ADMIN` = 4
+
+## 📦 IPFS (Pinata)
+
+Upload metadata và files lên IPFS:
+
+- Metadata thuốc
+- Ảnh sản phẩm
+- Chứng nhận/chứng chỉ
+- Dữ liệu cảm biến (AIoT)
+
+## 🗄️ Database
+
+### Schema
+
+```sql
+-- Bảng NFTs
+CREATE TABLE nfts (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    batch_number VARCHAR(100) NOT NULL UNIQUE,
+    status VARCHAR(50) NOT NULL,
+    manufacturer_address VARCHAR(42) NOT NULL,
+    distributor_address VARCHAR(42),
+    pharmacy_address VARCHAR(42),
+    ipfs_hash VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW(),
+    ...
+);
+
+-- Bảng Users
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    address VARCHAR(42) UNIQUE NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    assigned_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Bảng TransferRequests
+CREATE TABLE transfer_requests (
+    id SERIAL PRIMARY KEY,
+    nft_id INTEGER NOT NULL,
+    distributor_address VARCHAR(42) NOT NULL,
+    pharmacy_address VARCHAR(42),
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    ...
+);
+
+-- Bảng Milestones
+CREATE TABLE milestones (
+    id SERIAL PRIMARY KEY,
+    nft_id INTEGER NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    timestamp TIMESTAMP DEFAULT NOW(),
+    actor_address VARCHAR(42) NOT NULL
+);
+```
+
+## 🔧 Công Nghệ Sử Dụng
+
+### Backend
+
+- **ASP.NET Core 8.0 MVC**
+- **Entity Framework Core** - ORM cho PostgreSQL
+- **Nethereum** - Tương tác với Ethereum/blockchain
+- **HttpClient** - Gọi API Pinata
+
+### Frontend
+
+- **Razor Views** - Server-side rendering
+- **Tailwind CSS** - Styling
+- **JavaScript** - Client-side logic
+- **MetaMask** - Wallet integration (frontend)
+
+### Blockchain
+
+- **Solidity** - Smart contract language
+- **Hardhat** - Development framework
+- **Saga Chainlet** - Custom blockchain network
+
+### Database
+
+- **PostgreSQL** (Neon.tech hosted)
+
+### IPFS
+
+- **Pinata** - IPFS pinning service
+
+## 📝 API Endpoints
+
+### Manufacturer
+
+- `POST /Manufacturer/CreateNFT` - Tạo NFT mới
+- `GET /Manufacturer/GetNFTs` - Lấy danh sách NFT
+- `POST /Manufacturer/ApproveTransfer` - Duyệt yêu cầu chuyển
+
+### Distributor
+
+- `GET /Distributor/GetNFTs` - Lấy lô đang vận chuyển
+- `POST /Distributor/UploadSensorData` - Upload dữ liệu cảm biến
+- `POST /Distributor/RequestTransfer` - Tạo yêu cầu chuyển
+
+### Pharmacy
+
+- `GET /Pharmacy/LookupDrug?batchNumber=xxx` - Tra cứu thuốc
+- `POST /Pharmacy/ConfirmReceived` - Xác nhận nhập kho
+- `GET /Pharmacy/GetTransferRequests` - Lấy danh sách yêu cầu
+
+### Admin
+
+- `POST /Admin/AssignRole` - Phân quyền người dùng
+- `DELETE /Admin/DeleteUser` - Xóa người dùng
+- `GET /Admin/GetUsers` - Lấy danh sách users
+
+## 🧪 Testing
+
+```bash
+# Chạy tests (nếu có)
+dotnet test
+```
+
+## 📄 License
+
+MIT
+
+## 👨‍💻 Author
+
+PharmaDNA Development Team

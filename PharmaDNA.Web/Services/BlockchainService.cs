@@ -15,9 +15,12 @@ namespace PharmaDNA.Web.Services
 
         public BlockchainService(IConfiguration configuration, ILogger<BlockchainService> logger)
         {
-            var rpcUrl = configuration["Blockchain:RpcUrl"];
-            var contractAddress = configuration["Blockchain:ContractAddress"];
-            var privateKey = configuration["Blockchain:PrivateKey"];
+            var rpcUrl = Environment.GetEnvironmentVariable("PHARMADNA_RPC") 
+                ?? configuration["Blockchain:RpcUrl"];
+            var contractAddress = Environment.GetEnvironmentVariable("PHARMA_NFT_ADDRESS") 
+                ?? configuration["Blockchain:ContractAddress"];
+            var privateKey = Environment.GetEnvironmentVariable("OWNER_PRIVATE_KEY") 
+                ?? configuration["Blockchain:PrivateKey"];
             
             _web3 = new Web3(rpcUrl);
             _contractAddress = contractAddress;

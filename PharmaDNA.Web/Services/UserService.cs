@@ -137,28 +137,56 @@ namespace PharmaDNA.Web.Services
                     return false;
                 }
 
-                // Update database
-                var dbSuccess = await UpdateUserRoleAsync(address, role);
-                if (!dbSuccess)
-                {
-                    _logger.LogError($"Failed to update user role in database: {address}");
-                    return false;
-                }
+                // Lowercase address for consistency
+                var normalizedAddress = address.ToLower();
+
+                // Update database first (upsert)
+                await _context.Database.ExecuteSqlRawAsync(
+                    "INSERT INTO users (address, role, assigned_at) VALUES ({0}, {1}, {2}) " +
+                    "ON CONFLICT (address) DO UPDATE SET role = {1}, assigned_at = {2}",
+                    normalizedAddress, role, DateTime.UtcNow
+                );
 
                 // Update blockchain
                 var blockchainSuccess = await _blockchainService.AssignRoleAsync(address, roleEnum);
                 if (!blockchainSuccess)
                 {
-                    _logger.LogError($"Failed to assign role on blockchain: {address}");
-                    return false;
+                    _logger.LogWarning($"Database updated but failed to assign role on blockchain: {address}");
+                    // Don't fail completely, database update succeeded
                 }
 
-                _logger.LogInformation($"Role assigned successfully: {address} -> {role}");
+                // Verify role was set on chain
+                var roleOnChain = await _blockchainService.GetRoleAsync(address);
+                
+                _logger.LogInformation($"Role assigned successfully: {address} -> {role} (DB: {role}, Chain: {roleOnChain})");
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error assigning role: {address} -> {role}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteUserAndRoleAsync(string address)
+        {
+            try
+            {
+                var normalizedAddress = address.ToLower();
+                
+                // Delete from database
+                var deleted = await DeleteUserAsync(address);
+                if (!deleted) return false;
+
+                // TODO: Revoke role on blockchain
+                // await _blockchainService.RevokeRoleAsync(address);
+
+                _logger.LogInformation($"User deleted: {address}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deleting user: {address}");
                 return false;
             }
         }

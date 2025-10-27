@@ -1,86 +1,82 @@
-# PharmaDNA - Truy xuất nguồn gốc thuốc bằng Blockchain & AIoT
+# PharmaDNA Web Application
 
-Hệ thống truy xuất nguồn gốc thuốc sử dụng công nghệ Blockchain và AIoT, được chuyển đổi từ TypeScript/Next.js sang C# ASP.NET Core MVC.
+Hệ thống truy xuất nguồn gốc thuốc bằng Blockchain & AIoT - Phiên bản C# ASP.NET Core MVC
 
-## Tính năng chính
+## 🎯 Tổng quan
 
-- **Nhà sản xuất**: Tạo NFT cho từng lô thuốc, upload metadata lên IPFS
-- **Nhà phân phối**: Quản lý vận chuyển, upload dữ liệu cảm biến AIoT
-- **Nhà thuốc**: Quét QR, xác minh và xác nhận nhập kho
-- **Người tiêu dùng**: Tra cứu nguồn gốc thuốc không cần kết nối ví
-- **Quản trị viên**: Quản lý hệ thống, cấp quyền vai trò
+PharmaDNA là hệ thống truy xuất nguồn gốc thuốc sử dụng công nghệ Blockchain và AIoT (Artificial Intelligence of Things) để đảm bảo tính minh bạch và xác thực nguồn gốc thuốc.
 
-## Công nghệ sử dụng
+## 🏗️ Kiến trúc
+
+### **Mô hình MVC (Model-View-Controller)**
+
+- **Models**: Entities, DTOs, ViewModels
+- **Views**: Razor Views với Tailwind CSS
+- **Controllers**: API Controllers cho các chức năng
+
+### **Công nghệ sử dụng**
 
 - **Backend**: ASP.NET Core 8.0 MVC
 - **Database**: PostgreSQL với Entity Framework Core
 - **Blockchain**: Nethereum (Ethereum .NET)
-- **IPFS**: Pinata API
-- **Frontend**: Bootstrap 5, JavaScript ES6
-- **Architecture**: Repository Pattern, Dependency Injection
+- **IPFS**: Pinata Gateway
+- **Frontend**: Tailwind CSS + Alpine.js
+- **Smart Contract**: Solidity (PharmaNFT.sol)
 
-## Cấu trúc dự án
+## 📁 Cấu trúc dự án
 
 ```
 PharmaDNA.Web/
-├── Controllers/          # MVC Controllers
-├── Models/              # Entities, DTOs, ViewModels
-├── Services/            # Business Logic Services
-├── Data/                # Database Context
-├── Views/               # Razor Views
-├── wwwroot/             # Static files
-└── Program.cs           # Application entry point
+├── Controllers/          # API Controllers
+├── Models/              # Data Models
+│   ├── Entities/        # Database Entities
+│   ├── DTOs/           # Data Transfer Objects
+│   └── ViewModels/     # View Models
+├── Services/           # Business Logic
+├── Views/              # Razor Views
+├── Data/               # Database Context
+├── wwwroot/            # Static Files
+│   ├── css/           # Tailwind CSS
+│   ├── js/            # JavaScript
+│   ├── images/        # Static Images
+│   └── contracts/     # Smart Contract ABI
+├── Database/          # SQL Scripts
+├── Contracts/         # Smart Contracts
+└── Program.cs         # Application Entry Point
 ```
 
-## Cài đặt và chạy
+## 🚀 Cài đặt và chạy
 
-### Yêu cầu hệ thống
+### **1. Yêu cầu hệ thống**
 
 - .NET 8.0 SDK
-- PostgreSQL 12+
-- Visual Studio 2022 hoặc VS Code
+- PostgreSQL
+- Node.js (cho Tailwind CSS)
 
-### Cài đặt
-
-1. **Clone repository**
+### **2. Cài đặt dependencies**
 
 ```bash
-git clone <repository-url>
-cd PharmaDNA.Web
+# Cài đặt Tailwind CSS
+npm install
+
+# Build CSS
+npm run build-css-prod
 ```
 
-2. **Cài đặt packages**
+### **3. Cấu hình biến môi trường**
 
-```bash
-dotnet restore
+Tạo file `.env` hoặc set biến môi trường:
+
+```env
+DATABASE_URL=postgresql://username:password@host:port/database
+PINATA_JWT=your-pinata-jwt-token
+PHARMA_NFT_ADDRESS=0xYourContractAddress
+OWNER_PRIVATE_KEY=your-private-key
+PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
+PHARMADNA_RPC=https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io
 ```
 
-3. **Cấu hình database**
-
-```bash
-# Tạo database PostgreSQL
-createdb pharmadna
-
-# Cập nhật connection string trong appsettings.json
-```
-
-4. **Cấu hình Blockchain và IPFS**
-
-```json
-{
-  "Blockchain": {
-    "RpcUrl": "https://your-rpc-url",
-    "ContractAddress": "0x...",
-    "PrivateKey": "..."
-  },
-  "IPFS": {
-    "PinataJWT": "your-pinata-jwt",
-    "GatewayUrl": "https://gateway.pinata.cloud/ipfs/"
-  }
-}
-```
-
-5. **Chạy ứng dụng**
+### **4. Chạy ứng dụng**
 
 ```bash
 dotnet run
@@ -88,103 +84,217 @@ dotnet run
 
 Truy cập: `https://localhost:5001`
 
-## Cấu trúc Database
+## 🎭 Vai trò trong hệ thống
 
-### Bảng NFTs
+### **1. Nhà sản xuất (Manufacturer)**
 
-- `Id`: Primary key
-- `Name`: Tên thuốc
-- `BatchNumber`: Số lô (unique)
-- `Status`: Trạng thái (CREATED, IN_TRANSIT, IN_PHARMACY)
-- `ManufacturerAddress`: Địa chỉ nhà sản xuất
-- `DistributorAddress`: Địa chỉ nhà phân phối
-- `PharmacyAddress`: Địa chỉ nhà thuốc
-- `IpfsHash`: Hash metadata trên IPFS
+- Tạo NFT cho từng lô thuốc
+- Upload metadata lên IPFS
+- Mint NFT trên blockchain
 
-### Bảng Users
+### **2. Nhà phân phối (Distributor)**
 
-- `Id`: Primary key
-- `Address`: Địa chỉ ví (unique)
-- `Role`: Vai trò (MANUFACTURER, DISTRIBUTOR, PHARMACY, ADMIN)
-- `AssignedAt`: Ngày cấp quyền
+- Quản lý vận chuyển thuốc
+- Upload dữ liệu cảm biến AIoT
+- Thêm milestones vào lịch sử
 
-### Bảng TransferRequests
+### **3. Nhà thuốc (Pharmacy)**
 
-- `Id`: Primary key
-- `NftId`: ID NFT
-- `DistributorAddress`: Địa chỉ nhà phân phối
-- `PharmacyAddress`: Địa chỉ nhà thuốc
-- `Status`: Trạng thái (PENDING, APPROVED, REJECTED)
+- Quét QR code để xác minh
+- Xác nhận nhập kho
+- Quản lý inventory
 
-### Bảng Milestones
+### **4. Người tiêu dùng (Consumer)**
 
-- `Id`: Primary key
-- `NftId`: ID NFT
-- `Type`: Loại mốc
-- `Description`: Mô tả
-- `Location`: Vị trí
-- `Timestamp`: Thời gian
-- `ActorAddress`: Địa chỉ người thực hiện
+- Tra cứu nguồn gốc thuốc
+- Không cần kết nối ví
+- Xem lịch sử sản phẩm
 
-## API Endpoints
+### **5. Quản trị viên (Admin)**
 
-### Manufacturer
+- Quản lý người dùng
+- Cấp quyền vai trò
+- Giám sát hệ thống
+
+## 🔧 API Endpoints
+
+### **Manufacturer**
 
 - `POST /Manufacturer/CreateNFT` - Tạo NFT mới
-- `GET /Manufacturer/GetTransferRequests` - Lấy yêu cầu chuyển giao
-- `POST /Manufacturer/ApproveTransfer` - Chấp thuận chuyển giao
+- `GET /Manufacturer/GetTransferRequests` - Lấy yêu cầu chuyển
+- `POST /Manufacturer/ApproveTransfer` - Duyệt chuyển NFT
 
-### Distributor
+### **Distributor**
 
 - `GET /Distributor/GetNFTs` - Lấy danh sách NFT
 - `POST /Distributor/UploadSensorData` - Upload dữ liệu cảm biến
-- `POST /Distributor/AddMilestone` - Thêm mốc vận chuyển
+- `POST /Distributor/AddMilestone` - Thêm milestone
+- `POST /Distributor/RequestTransfer` - Yêu cầu chuyển NFT
 
-### Pharmacy
+### **Pharmacy**
 
-- `GET /Pharmacy/LookupDrug` - Tra cứu thuốc
-- `POST /Pharmacy/ConfirmReceived` - Xác nhận nhập kho
+- `GET /Pharmacy/GetTransferRequests` - Lấy yêu cầu chuyển
+- `POST /Pharmacy/ApproveTransfer` - Duyệt nhận NFT
+- `POST /Pharmacy/ScanQR` - Quét QR code
 
-### Admin
-
-- `GET /Admin/GetUsers` - Lấy danh sách người dùng
-- `POST /Admin/AssignRole` - Cấp quyền
-- `DELETE /Admin/DeleteUser` - Xóa người dùng
-
-### Lookup
+### **Lookup**
 
 - `GET /Lookup/Search` - Tìm kiếm thuốc
-- `GET /Lookup/GetDrugHistory` - Lấy lịch sử thuốc
+- `GET /Lookup/GetProductHistory` - Lấy lịch sử sản phẩm
 
-## Services
+### **Admin**
 
-### BlockchainService
+- `GET /Admin/GetUsers` - Lấy danh sách người dùng
+- `POST /Admin/AssignRole` - Cấp quyền vai trò
+- `POST /Admin/CreateUser` - Tạo người dùng mới
 
-- Tích hợp với smart contract
-- Mint NFT, transfer, kiểm tra quyền
-- Sử dụng Nethereum library
+## 🗄️ Database Schema
 
-### IPFSService
+### **NFTs Table**
 
-- Upload metadata và files lên IPFS
-- Sử dụng Pinata API
-- Trả về IPFS hash
+```sql
+CREATE TABLE nfts (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    batch_number VARCHAR(100) UNIQUE NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    manufacturer_address VARCHAR(42) NOT NULL,
+    distributor_address VARCHAR(42),
+    pharmacy_address VARCHAR(42),
+    ipfs_hash VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW(),
+    manufacture_date DATE,
+    expiry_date DATE,
+    description TEXT,
+    image_url VARCHAR(500)
+);
+```
 
-### NFTService
+### **Users Table**
 
-- Quản lý NFT trong database
-- CRUD operations
-- Business logic
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    address VARCHAR(42) UNIQUE NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    assigned_at TIMESTAMP DEFAULT NOW()
+);
+```
 
-### UserService
+### **Transfer Requests Table**
 
-- Quản lý người dùng
-- Cấp quyền
-- Đồng bộ với blockchain
+```sql
+CREATE TABLE transfer_requests (
+    id SERIAL PRIMARY KEY,
+    nft_id INTEGER NOT NULL,
+    distributor_address VARCHAR(42) NOT NULL,
+    pharmacy_address VARCHAR(42) NOT NULL,
+    transfer_note TEXT,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
-## Deployment
+### **Milestones Table**
 
-### Docker
+```sql
+CREATE TABLE milestones (
+    id SERIAL PRIMARY KEY,
+    nft_id INTEGER NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    description TEXT,
+    location VARCHAR(255),
+    timestamp TIMESTAMP DEFAULT NOW(),
+    actor_address VARCHAR(42) NOT NULL
+);
+```
+
+## 🔗 Smart Contract
+
+### **PharmaNFT.sol**
+
+- **Functions**: `mintProductNFT`, `transferProductNFT`, `getProductHistory`
+- **Roles**: Manufacturer, Distributor, Pharmacy, Admin
+- **Events**: `ProductMinted`, `ProductTransferred`, `RoleAssigned`
+
+### **Contract Functions**
+
+```solidity
+// Mint NFT
+function mintProductNFT(string memory uri) public onlyRole(Role.Manufacturer) returns (uint256)
+
+// Transfer NFT
+function transferProductNFT(uint256 tokenId, address to) public onlyTokenOwner(tokenId)
+
+// Get History
+function getProductHistory(uint256 tokenId) public view returns (address[] memory)
+
+// Role Management
+function assignRole(address user, Role role) public onlyOwner
+```
+
+## 🎨 UI/UX
+
+### **Tailwind CSS Components**
+
+- **Buttons**: `.btn-primary`, `.btn-secondary`, `.btn-success`
+- **Cards**: `.card`, `.card-header`, `.card-body`
+- **Forms**: `.form-input`, `.form-label`
+- **Badges**: `.badge`, `.badge-success`, `.badge-warning`
+- **Alerts**: `.alert`, `.alert-success`, `.alert-danger`
+
+### **Responsive Design**
+
+- Mobile-first approach
+- Breakpoints: sm, md, lg, xl
+- Custom animations và transitions
+
+## 🔒 Bảo mật
+
+### **Authentication**
+
+- JWT Bearer tokens
+- Role-based authorization
+- Session management
+
+### **Data Protection**
+
+- Input validation
+- SQL injection prevention
+- XSS protection
+
+### **Blockchain Security**
+
+- Private key management
+- Transaction signing
+- Gas optimization
+
+## 📊 Monitoring & Logging
+
+### **Logging**
+
+- Console logging
+- File logging
+- Error tracking
+
+### **Performance**
+
+- Database query optimization
+- Caching strategies
+- Response time monitoring
+
+## 🚀 Deployment
+
+### **Production Setup**
+
+1. Cấu hình production database
+2. Set up reverse proxy (Nginx)
+3. SSL certificate
+4. Environment variables
+5. Health checks
+
+### **Docker Support**
 
 ```dockerfile
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
@@ -194,52 +304,24 @@ EXPOSE 80
 ENTRYPOINT ["dotnet", "PharmaDNA.Web.dll"]
 ```
 
-### Azure
-
-1. Tạo App Service
-2. Cấu hình connection string
-3. Deploy từ GitHub/Azure DevOps
-
-### AWS
-
-1. Sử dụng Elastic Beanstalk
-2. Cấu hình RDS PostgreSQL
-3. Deploy với AWS CLI
-
-## Monitoring và Logging
-
-- **Logging**: Serilog với file và console sinks
-- **Health Checks**: ASP.NET Core Health Checks
-- **Metrics**: Application Insights (Azure)
-
-## Security
-
-- **Authentication**: JWT Bearer tokens
-- **Authorization**: Role-based access control
-- **HTTPS**: Bắt buộc trong production
-- **CORS**: Cấu hình cho frontend
-
-## Testing
-
-```bash
-# Unit tests
-dotnet test
-
-# Integration tests
-dotnet test --filter Category=Integration
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork repository
-2. Tạo feature branch
+2. Create feature branch
 3. Commit changes
-4. Push và tạo Pull Request
+4. Push to branch
+5. Create Pull Request
 
-## License
+## 📄 License
 
-MIT License - xem file LICENSE để biết thêm chi tiết.
+MIT License - Xem file LICENSE để biết thêm chi tiết.
 
-## Support
+## 📞 Support
 
-Liên hệ: support@pharmadna.com
+- **Email**: support@pharmadna.com
+- **Documentation**: [Wiki](https://github.com/pharmadna/wiki)
+- **Issues**: [GitHub Issues](https://github.com/pharmadna/issues)
+
+---
+
+**PharmaDNA** - Truy xuất nguồn gốc thuốc bằng Blockchain & AIoT 🏥💊🔗
