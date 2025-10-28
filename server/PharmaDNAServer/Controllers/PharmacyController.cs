@@ -26,7 +26,7 @@ public class PharmacyController : ControllerBase
     }
 
     [HttpPut]
-    public async Task<IActionResult> UpdateNFT([FromBody] UpdateNFTRequest request)
+    public async Task<IActionResult> UpdateNFT([FromBody] PharmacyUpdateNFTRequest request)
     {
         if (request.Id == 0 || string.IsNullOrEmpty(request.Status) || string.IsNullOrEmpty(request.PharmacyAddress))
         {
@@ -48,7 +48,7 @@ public class PharmacyController : ControllerBase
     }
 }
 
-public class UpdateNFTRequest
+public class PharmacyUpdateNFTRequest
 {
     public int Id { get; set; }
     public string Status { get; set; } = string.Empty;

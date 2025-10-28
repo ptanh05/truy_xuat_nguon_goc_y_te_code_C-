@@ -25,6 +25,17 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Bind contract options from environment/appsettings
+builder.Services.Configure<PharmaDNAServer.Models.ContractOptions>(options =>
+{
+    options.PharmaNftAddress = builder.Configuration["PHARMA_NFT_ADDRESS"] ?? string.Empty;
+    options.OwnerPrivateKey = builder.Configuration["OWNER_PRIVATE_KEY"] ?? string.Empty;
+    options.RpcUrl = builder.Configuration["PHARMADNA_RPC"] ?? string.Empty;
+});
+
+// Register services
+builder.Services.AddSingleton<PharmaDNAServer.Services.BlockchainService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

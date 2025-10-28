@@ -36,7 +36,7 @@ public class DistributorController : ControllerBase
     }
 
     [HttpPut]
-    public async Task<IActionResult> UpdateNFT([FromBody] UpdateNFTRequest request)
+    public async Task<IActionResult> UpdateNFT([FromBody] DistributorUpdateNFTRequest request)
     {
         if (request.Id == 0 || string.IsNullOrEmpty(request.Status) || string.IsNullOrEmpty(request.DistributorAddress))
         {
@@ -220,7 +220,7 @@ public class DistributorController : ControllerBase
     }
 }
 
-public class UpdateNFTRequest
+public class DistributorUpdateNFTRequest
 {
     public int Id { get; set; }
     public string Status { get; set; } = string.Empty;

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PharmaDNAServer.Data;
+using Microsoft.Extensions.Options;
 using PharmaDNAServer.Models;
 
 namespace PharmaDNAServer.Controllers;
@@ -10,10 +11,12 @@ namespace PharmaDNAServer.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly PharmaDNAServer.Models.ContractOptions _contractOptions;
 
-    public AdminController(ApplicationDbContext context)
+    public AdminController(ApplicationDbContext context, IOptions<PharmaDNAServer.Models.ContractOptions> contractOptions)
     {
         _context = context;
+        _contractOptions = contractOptions.Value;
     }
 
     [HttpGet]
@@ -62,13 +65,24 @@ public class AdminController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // TODO: Sync with blockchain contract
-        // Implement blockchain sync logic here
+        // Validate blockchain config presence (prep for signing)
+        if (string.IsNullOrWhiteSpace(_contractOptions.PharmaNftAddress) ||
+            string.IsNullOrWhiteSpace(_contractOptions.OwnerPrivateKey))
+        {
+            // Return success for DB but include warning about blockchain config
+            return Ok(new
+            {
+                success = true,
+                message = $"✅ Đã cấp quyền {request.Role} cho địa chỉ {address}. ⚠️ Chưa cấu hình PHARMA_NFT_ADDRESS/OWNER_PRIVATE_KEY để đồng bộ on-chain.",
+                onChainConfigured = false
+            });
+        }
 
         return Ok(new
         {
             success = true,
-            message = $"✅ Đã cấp quyền {request.Role} cho địa chỉ {address} và đồng bộ lên blockchain thành công!"
+            message = $"✅ Đã cấp quyền {request.Role} cho địa chỉ {address}.",
+            onChainConfigured = true
         });
     }
 
