@@ -1,0 +1,6 @@
+@PharmaDNAServer_HostAddress = http://localhost:5196
+
+GET {{PharmaDNAServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
