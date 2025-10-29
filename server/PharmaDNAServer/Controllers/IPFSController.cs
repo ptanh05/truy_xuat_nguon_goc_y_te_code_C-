@@ -156,12 +156,18 @@ public class IPFSController : ControllerBase
         // TODO: Save to database
         // This should be done in ManufacturerController
 
+        var pinataGateway = _configuration["PINATA_GATEWAY"];
+        if (string.IsNullOrWhiteSpace(pinataGateway))
+        {
+            pinataGateway = "https://gateway.pinata.cloud/ipfs/";
+        }
+
         var imageUrl = uploadedFiles.Count > 0
-            ? uploadedFiles[0].Replace("ipfs/", "https://gateway.pinata.cloud/ipfs/")
+            ? uploadedFiles[0].Replace("ipfs/", pinataGateway)
             : null;
 
         var certificateUrl = uploadedFiles.Count > 1
-            ? uploadedFiles[1].Replace("ipfs/", "https://gateway.pinata.cloud/ipfs/")
+            ? uploadedFiles[1].Replace("ipfs/", pinataGateway)
             : null;
 
         return Ok(new

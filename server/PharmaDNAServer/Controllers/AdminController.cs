@@ -12,11 +12,13 @@ public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly PharmaDNAServer.Models.ContractOptions _contractOptions;
+    private readonly IConfiguration _configuration;
 
-    public AdminController(ApplicationDbContext context, IOptions<PharmaDNAServer.Models.ContractOptions> contractOptions)
+    public AdminController(ApplicationDbContext context, IOptions<PharmaDNAServer.Models.ContractOptions> contractOptions, IConfiguration configuration)
     {
         _context = context;
         _contractOptions = contractOptions.Value;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -30,6 +32,27 @@ public class AdminController : ControllerBase
             assignedAt = u.AssignedAt
         });
         return Ok(response);
+    }
+
+    [HttpGet("config-status")]
+    public IActionResult GetConfigStatus()
+    {
+        var hasDatabaseUrl = !string.IsNullOrWhiteSpace(_configuration["DATABASE_URL"]) || !string.IsNullOrWhiteSpace(_configuration.GetConnectionString("DefaultConnection"));
+        var hasPinataJwt = !string.IsNullOrWhiteSpace(_configuration["PINATA_JWT"]);
+        var hasPharmaNft = !string.IsNullOrWhiteSpace(_contractOptions.PharmaNftAddress);
+        var hasOwnerPk = !string.IsNullOrWhiteSpace(_contractOptions.OwnerPrivateKey);
+        var hasRpc = !string.IsNullOrWhiteSpace(_contractOptions.RpcUrl);
+        var pinataGateway = _configuration["PINATA_GATEWAY"];
+
+        return Ok(new
+        {
+            databaseConfigured = hasDatabaseUrl,
+            pinataJwtConfigured = hasPinataJwt,
+            pinataGateway = string.IsNullOrWhiteSpace(pinataGateway) ? "https://gateway.pinata.cloud/ipfs/" : pinataGateway,
+            pharmaNftConfigured = hasPharmaNft,
+            ownerPrivateKeyConfigured = hasOwnerPk,
+            rpcConfigured = hasRpc
+        });
     }
 
     [HttpPost]
