@@ -93,7 +93,8 @@ function ManufacturerContent() {
         );
         setIsManufacturer(myUser?.role === "MANUFACTURER");
       })
-      .catch(() => setIsManufacturer(false));
+      .catch(() => setIsManufacturer(false))
+    );
   }, [isConnected, account]);
 
   // Kiểm tra role thực tế trên contract

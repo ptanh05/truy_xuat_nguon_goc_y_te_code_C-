@@ -211,7 +211,8 @@ function DistributorContent() {
         }).catch(() => {
           setTransferRequests([]);
           setCanAddMilestone(false);
-        });
+        })
+      );
     } else {
       setCanAddMilestone(false);
     }
