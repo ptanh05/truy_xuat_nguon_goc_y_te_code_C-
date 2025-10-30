@@ -21,32 +21,15 @@ builder.Services.AddCors(options =>
         });
 });
 
-// Resolve Postgres connection string: prefer DATABASE_URL env (e.g. Neon), fallback to appsettings
-string? databaseUrl = builder.Configuration["DATABASE_URL"];
-string resolvedConnectionString;
+// Resolve SQL Server connection string: prefer env var SQLSERVER_CONNECTION, fallback to appsettings
+string resolvedConnectionString =
+    builder.Configuration["SQLSERVER_CONNECTION"]
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? string.Empty;
 
-if (!string.IsNullOrWhiteSpace(databaseUrl) && databaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
-{
-    // Parse postgres://user:pass@host:port/db -> Npgsql conn string
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':', 2);
-    var username = Uri.UnescapeDataString(userInfo[0]);
-    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty;
-    var host = uri.Host;
-    var port = uri.Port > 0 ? uri.Port : 5432;
-    var database = uri.AbsolutePath.TrimStart('/');
-    // Neon requires SSL; trust cert in dev
-    resolvedConnectionString =
-        $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
-}
-else
-{
-    resolvedConnectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
-}
-
-// Add DbContext (PostgreSQL)
+// Add DbContext (SQL Server)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(resolvedConnectionString));
+    options.UseSqlServer(resolvedConnectionString));
 
 // Bind contract options from environment/appsettings
 builder.Services.Configure<PharmaDNAServer.Models.ContractOptions>(options =>

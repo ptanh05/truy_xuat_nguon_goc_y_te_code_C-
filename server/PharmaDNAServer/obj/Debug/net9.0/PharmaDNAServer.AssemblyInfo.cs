@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PharmaDNAServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b17d9ea4342c9b2fe65a05728be5d16514a8e8e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3e5c3967ad0e27c0019fe3d98241c06bee3086f2")]
 [assembly: System.Reflection.AssemblyProductAttribute("PharmaDNAServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PharmaDNAServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

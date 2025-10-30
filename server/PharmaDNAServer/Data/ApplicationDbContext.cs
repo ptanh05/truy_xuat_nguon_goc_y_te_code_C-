@@ -10,9 +10,9 @@ public class ApplicationDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<NFT> NFTs { get; set; }
-    public DbSet<TransferRequest> TransferRequests { get; set; }
-    public DbSet<Milestone> Milestones { get; set; }
+    public DbSet<User> Users { get; set; } // maps to NguoiDung
+    public DbSet<NFT> NFTs { get; set; } // maps to SanPhamNFT
+    public DbSet<TransferRequest> TransferRequests { get; set; } // maps to YeuCauChuyen
+    public DbSet<Milestone> Milestones { get; set; } // maps to MocDanhDau
 }
 

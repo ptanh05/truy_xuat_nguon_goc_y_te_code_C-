@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace PharmaDNAServer.Models;
 
+[Table("YeuCauChuyen")]
 public class TransferRequest
 {
     public int Id { get; set; }

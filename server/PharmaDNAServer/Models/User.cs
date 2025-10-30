@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace PharmaDNAServer.Models;
 
+[Table("NguoiDung")]
 public class User
 {
     public int Id { get; set; }

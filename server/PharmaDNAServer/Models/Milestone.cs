@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace PharmaDNAServer.Models;
 
+[Table("MocDanhDau")]
 public class Milestone
 {
     public int Id { get; set; }

@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace PharmaDNAServer.Models;
 
+[Table("SanPhamNFT")]
 public class NFT
 {
     public int Id { get; set; }
