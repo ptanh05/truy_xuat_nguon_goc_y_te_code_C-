@@ -25,3 +25,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# C# / .NET
+**/bin/
+**/obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.AssemblyInfo.cs
+*.sourcelink.json
+apphost.exe
