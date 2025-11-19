@@ -36,3 +36,5 @@ next-env.d.ts
 *.AssemblyInfo.cs
 *.sourcelink.json
 apphost.exe
+appsettings.json
+appsettings.Development.json

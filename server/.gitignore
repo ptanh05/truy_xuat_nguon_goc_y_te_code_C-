@@ -26,7 +26,7 @@ appsettings.Production.json
 # Keep appsettings.json template (without secrets) but warn about it
 # Uncomment the line below if you want to ignore appsettings.json completely
 appsettings.json
-
+appsettings.Development.json
 # Logs
 logs/
 *.log
