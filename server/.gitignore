@@ -1,0 +1,45 @@
+# .NET build outputs
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio cache/options
+.vs/
+.vscode/
+*.swp
+*.cache
+
+# Environment and configuration files with secrets
+appsettings.Development.json
+appsettings.Production.json
+*.env
+*.env.local
+
+# Keep appsettings.json template (without secrets) but warn about it
+# Uncomment the line below if you want to ignore appsettings.json completely
+appsettings.json
+
+# Logs
+logs/
+*.log
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Migrations (optional - uncomment if you don't want to commit migrations)
+# Migrations/
+
+# OS files
+.DS_Store
+Thumbs.db
+
