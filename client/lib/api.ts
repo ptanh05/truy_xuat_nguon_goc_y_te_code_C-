@@ -11,7 +11,8 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
   });
   if (!response.ok) {
     const text = await response.text().catch(() => '');
-    throw new Error(`API call failed: ${response.status} ${response.statusText} ${text}`.trim());
+    const errorMessage = text.length > 200 ? text.substring(0, 200) + '...' : text;
+    throw new Error(`API call failed: ${response.status} ${response.statusText}${errorMessage ? ` - ${errorMessage}` : ''}`.trim());
   }
   const contentType = response.headers.get('content-type') || '';
   return contentType.includes('application/json') ? response.json() : response.text();
