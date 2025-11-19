@@ -51,6 +51,7 @@ function AdminContent() {
     role: UserRole;
   } | null>(null);
   const [userList, setUserList] = useState<any[]>([]);
+  const [nftList, setNftList] = useState<any[]>([]);
 
   // Lấy danh sách user từ API
   const fetchUsers = async () => {
@@ -63,9 +64,31 @@ function AdminContent() {
     }
   };
 
+  // Lấy danh sách NFTs từ API
+  const fetchNFTs = async () => {
+    try {
+      const { api } = await import("@/lib/api");
+      const data = await api.get("/manufacturer");
+      setNftList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setNftList([]);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchNFTs();
   }, [successMessage]);
+
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUsers();
+      fetchNFTs();
+    }, 10000); // Refresh mỗi 10 giây
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Thêm hàm xử lý sửa quyền
   const handleEditRole = (address: string, currentRole: UserRole) => {
@@ -90,6 +113,7 @@ function AdminContent() {
       setNewUserRole(null);
       setEditingUser(null);
       fetchUsers();
+      fetchNFTs(); // Refresh NFTs sau khi cấp quyền
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       alert(error.message || "Có lỗi xảy ra");
@@ -108,6 +132,7 @@ function AdminContent() {
       await api.delete("/admin", { address });
       setSuccessMessage(`✅ Đã xóa quyền của địa chỉ ${address}`);
       fetchUsers();
+      fetchNFTs(); // Refresh NFTs sau khi xóa user
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       alert(error.message || "Có lỗi xảy ra khi xóa quyền");
@@ -144,7 +169,7 @@ function AdminContent() {
   };
 
   const stats = {
-    totalNFTs: 0,
+    totalNFTs: nftList.length,
     totalUsers: userList.length,
     manufacturers: userList.filter((user) => user.role === "MANUFACTURER")
       .length,
@@ -152,9 +177,15 @@ function AdminContent() {
     pharmacies: userList.filter((user) => user.role === "PHARMACY").length,
   };
 
-  // Xóa filteredNFTs, thay thế bằng mảng rỗng hoặc logic phù hợp
-  // const filteredNFTs = statusFilter === "all" ? mockNFTs : mockNFTs.filter((nft) => nft.status === statusFilter)
-  const filteredNFTs: any[] = [];
+  // Filter NFTs theo status
+  const filteredNFTs = statusFilter === "all" 
+    ? nftList 
+    : nftList.filter((nft) => {
+        if (statusFilter === "manufactured") return nft.status === "created" || nft.status === "manufactured";
+        if (statusFilter === "in_transit") return nft.status === "in_transit";
+        if (statusFilter === "in_pharmacy") return nft.status === "in_pharmacy";
+        return true;
+      });
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -278,10 +309,42 @@ function AdminContent() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>Chưa có NFT nào trong hệ thống</p>
-              </div>
+              {filteredNFTs.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Chưa có NFT nào trong hệ thống</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredNFTs.map((nft) => (
+                    <div
+                      key={nft.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className="font-semibold">#{nft.id}</span>
+                          <span className="font-medium">{nft.name}</span>
+                          <Badge variant="outline">{nft.status}</Badge>
+                        </div>
+                        <div className="text-sm text-gray-600 space-y-1">
+                          {nft.batchNumber && (
+                            <p>Số lô: {nft.batchNumber}</p>
+                          )}
+                          {nft.manufacturerAddress && (
+                            <p className="font-mono text-xs">
+                              Manufacturer: {nft.manufacturerAddress.slice(0, 10)}...
+                            </p>
+                          )}
+                          {nft.createdAt && (
+                            <p>Ngày tạo: {new Date(nft.createdAt).toLocaleDateString()}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

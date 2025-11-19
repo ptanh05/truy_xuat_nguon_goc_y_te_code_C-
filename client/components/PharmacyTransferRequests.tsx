@@ -63,6 +63,17 @@ export default function PharmacyTransferRequests({
     }
   }, [pharmacyAddress]);
 
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    if (!pharmacyAddress) return;
+    
+    const interval = setInterval(() => {
+      fetchTransferRequests();
+    }, 10000); // Refresh mỗi 10 giây
+
+    return () => clearInterval(interval);
+  }, [pharmacyAddress]);
+
   // Xử lý yêu cầu chuyển lô (approve/reject)
   const handleTransferRequest = async (
     requestId: number,

@@ -43,13 +43,36 @@ function DistributorContent() {
   const [canAddMilestone, setCanAddMilestone] = useState(false);
 
   // Lấy danh sách NFT đã mint ra từ manufacturer
+  const fetchNFTs = async () => {
+    try {
+      const { api } = await import("@/lib/api");
+      const data = await api.get(`/manufacturer`);
+      setNftList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setNftList([]);
+    }
+  };
+
   useEffect(() => {
-    import("@/lib/api").then(({ api }) =>
-      api.get(`/manufacturer`)
-        .then((data) => setNftList(data))
-        .catch(() => setNftList([]))
-    );
+    fetchNFTs();
   }, []);
+
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNFTs();
+      // Refresh transfer requests nếu có
+      if (account) {
+        import("@/lib/api").then(({ api }) =>
+          api.get("/manufacturer/transfer-request")
+            .then((data) => setTransferRequests(Array.isArray(data) ? data : []))
+            .catch(() => setTransferRequests([]))
+        );
+      }
+    }, 10000); // Refresh mỗi 10 giây
+
+    return () => clearInterval(interval);
+  }, [account]);
 
   const mockNFTs: any[] = [];
 
@@ -90,11 +113,8 @@ function DistributorContent() {
         alert("Upload dữ liệu cảm biến thành công!");
         setSensorFile(null);
         setSelectedNFT(null);
-        import("@/lib/api").then(({ api }) =>
-          api.get(`/distributor?address=${account}`)
-            .then((data) => setNftList(data))
-            .catch(() => setNftList([]))
-        );
+        // Refresh danh sách NFTs
+        fetchNFTs();
       } else {
         alert(data.error || "Upload thất bại");
       }
@@ -117,7 +137,13 @@ function DistributorContent() {
         alert(
           "Đã gửi yêu cầu nhận lô thành công. Vui lòng chờ nhà sản xuất chấp thuận!"
         );
-        // Có thể cập nhật lại danh sách NFT nếu cần
+        // Refresh danh sách NFTs và transfer requests
+        fetchNFTs();
+        import("@/lib/api").then(({ api }) =>
+          api.get("/manufacturer/transfer-request")
+            .then((data) => setTransferRequests(Array.isArray(data) ? data : []))
+            .catch(() => setTransferRequests([]))
+        );
       } else {
         alert(data.error || "Gửi yêu cầu thất bại");
       }
@@ -143,9 +169,12 @@ function DistributorContent() {
         alert("Đã cập nhật mốc vận chuyển!");
         setMilestoneForm({ type: "", description: "", location: "" });
         // Tự động reload lịch sử
-        api.get(`/manufacturer/milestone?nft_id=${selectedNFT}`)
-          .then((data) => setMilestones(data))
+        const { api: apiRefresh } = await import("@/lib/api");
+        apiRefresh.get(`/manufacturer/milestone?nft_id=${selectedNFT}`)
+          .then((data) => setMilestones(Array.isArray(data) ? data : []))
           .catch(() => setMilestones([]));
+        // Refresh danh sách NFTs
+        fetchNFTs();
       } else {
         alert(data.error || "Cập nhật thất bại");
       }

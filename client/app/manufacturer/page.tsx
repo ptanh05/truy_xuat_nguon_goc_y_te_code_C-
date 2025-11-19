@@ -126,13 +126,41 @@ function ManufacturerContent() {
   }, [isConnected, account, uploadStatus]);
 
   // Lấy danh sách yêu cầu chuyển giao NFT
+  const fetchTransferRequests = async () => {
+    try {
+      const { api } = await import("@/lib/api");
+      const data = await api.get("/manufacturer/transfer-request");
+      setTransferRequests(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setTransferRequests([]);
+    }
+  };
+
   useEffect(() => {
-    import("@/lib/api").then(({ api }) =>
-      api.get("/manufacturer/transfer-request")
-        .then((data) => setTransferRequests(data))
-        .catch(() => setTransferRequests([]))
-    );
+    fetchTransferRequests();
   }, [uploadStatus, isApproving]);
+
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (isConnected && account) {
+        // Refresh user list
+        import("@/lib/api").then(({ api }) =>
+          api.get("/admin").then((users) => {
+            setUserList(users);
+            const myUser = users.find(
+              (u: any) => u.address.toLowerCase() === account.toLowerCase()
+            );
+            setIsManufacturer(myUser?.role === "MANUFACTURER");
+          }).catch(() => setIsManufacturer(false))
+        );
+        // Refresh transfer requests
+        fetchTransferRequests();
+      }
+    }, 10000); // Refresh mỗi 10 giây
+
+    return () => clearInterval(interval);
+  }, [isConnected, account]);
 
   useEffect(() => {
     if (isConnected && account && contractRole !== 1) {
@@ -151,9 +179,10 @@ function ManufacturerContent() {
     try {
       const { api } = await import("@/lib/api");
       const data = await api.put("/manufacturer/transfer-request", { requestId, nftId, distributorAddress });
-      if (res.ok && data.success) {
+      if (data.success) {
         alert("Chấp thuận thành công!");
-        setTransferRequests((prev) => prev.filter((r) => r.id !== requestId));
+        // Refresh transfer requests
+        fetchTransferRequests();
       } else {
         alert(data.error || "Chấp thuận thất bại");
       }
@@ -219,6 +248,8 @@ function ManufacturerContent() {
       if (res.ok && data.success) {
         setUploadResult(data);
         setUploadStatus("success");
+        // Refresh transfer requests sau khi upload
+        fetchTransferRequests();
       } else {
         setUploadStatus("error");
         alert(data.error || "Upload thất bại");
@@ -269,6 +300,9 @@ function ManufacturerContent() {
       await tx.wait();
       setUploadStatus("success");
       alert("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
+
+      // Refresh transfer requests sau khi mint
+      fetchTransferRequests();
 
       // Reset form để nhập lô mới
       setTimeout(() => {

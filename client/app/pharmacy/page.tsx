@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,8 +24,37 @@ function PharmacyContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [showTransferRequests, setShowTransferRequests] = useState(false);
+  const [nftList, setNftList] = useState<any[]>([]);
 
   const { account } = useWallet();
+
+  // Lấy danh sách NFTs trong pharmacy khi vào trang
+  const fetchNFTsInPharmacy = async () => {
+    try {
+      const { api } = await import("@/lib/api");
+      const data = await api.get("/pharmacy");
+      setNftList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setNftList([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchNFTsInPharmacy();
+  }, []);
+
+  // Auto-refresh mỗi 10 giây
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchNFTsInPharmacy();
+      // Refresh milestones nếu đang xem drugData
+      if (drugData?.batchNumber) {
+        lookupDrug(drugData.batchNumber);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [drugData]);
 
   const handleQRScan = (result: string) => {
     setBatchNumber(result);
@@ -91,6 +120,8 @@ function PharmacyContent() {
         );
         const msData = await msRes.json();
         setMilestones(msData || []);
+        // Refresh danh sách NFTs
+        fetchNFTsInPharmacy();
       } else {
         alert(data.error || "Xác nhận thất bại");
       }
@@ -300,6 +331,54 @@ function PharmacyContent() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Danh sách NFTs trong pharmacy */}
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Package className="w-5 h-5 mr-2" />
+              Danh sách lô thuốc trong kho ({nftList.length})
+            </CardTitle>
+            <CardDescription>
+              Tất cả lô thuốc đã được xác nhận nhập kho
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {nftList.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>Chưa có lô thuốc nào trong kho</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {nftList.map((nft) => (
+                  <div
+                    key={nft.id}
+                    className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      if (nft.batchNumber) {
+                        setBatchNumber(nft.batchNumber);
+                        lookupDrug(nft.batchNumber);
+                      }
+                    }}
+                  >
+                    <div className="font-semibold mb-1">#{nft.id} - {nft.name}</div>
+                    {nft.batchNumber && (
+                      <div className="text-sm text-gray-600 mb-1">
+                        Số lô: {nft.batchNumber}
+                      </div>
+                    )}
+                    <div className="text-xs text-gray-500">
+                      Trạng thái: {nft.status}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
