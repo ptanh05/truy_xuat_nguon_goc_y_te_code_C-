@@ -17,6 +17,7 @@ import RoleGuard from "@/components/RoleGuard";
 import { useWallet } from "@/hooks/useWallet";
 import PharmacyTransferRequests from "@/components/PharmacyTransferRequests";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 function PharmacyContent() {
   const [scanMode, setScanMode] = useState<"qr" | "manual">("qr");
@@ -29,6 +30,27 @@ function PharmacyContent() {
   const [pendingTransferCount, setPendingTransferCount] = useState(0);
 
   const { account } = useWallet();
+
+  const resolveMediaUrl = (url?: string | null) => {
+    if (!url) return "";
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+
+    let cleaned = trimmed
+      .replace(/^ipfs:\/\//i, "")
+      .replace(/^ipfs\//i, "")
+      .replace(/^\/+/i, "");
+
+    if (cleaned.startsWith("ipfs/")) {
+      cleaned = cleaned.substring(5);
+    }
+
+    const encoded = encodeURIComponent(cleaned);
+    return `${API_BASE_URL}/manufacturer/ipfs-file/${encoded}`;
+  };
 
   // Lấy danh sách NFTs trong pharmacy khi vào trang
   const fetchNFTsInPharmacy = async () => {
@@ -89,29 +111,70 @@ function PharmacyContent() {
     lookupDrug(result);
   };
 
-  const lookupDrug = async (batch_number: string) => {
+  const lookupDrug = async (batchNumberValue: string) => {
     setIsLoading(true);
     try {
       // Lấy thông tin NFT theo batch_number
       const { API_BASE_URL } = await import("@/lib/api");
       const nftRes = await fetch(
-        `${API_BASE_URL}/manufacturer?batchNumber=${encodeURIComponent(batch_number)}`
+        `${API_BASE_URL}/manufacturer?batchNumber=${encodeURIComponent(batchNumberValue)}`
       );
       const nftData = await nftRes.json();
-      if (!nftRes.ok || !nftData || !nftData.batch_number) {
+      const hasBatchNumber =
+        nftData?.batchNumber ?? nftData?.batch_number ?? null;
+      if (!nftRes.ok || !nftData || !hasBatchNumber) {
         setDrugData(null);
         setMilestones([]);
         toast.error("Không tìm thấy lô thuốc với số lô này");
         setIsLoading(false);
         return;
       }
-      setDrugData(nftData);
+      const normalizedNft = {
+        id: nftData.id,
+        name: nftData.name,
+        batchNumber: nftData.batchNumber ?? nftData.batch_number ?? "",
+        manufactureDate:
+          nftData.manufactureDate ?? nftData.manufacture_date ?? "",
+        expiryDate: nftData.expiryDate ?? nftData.expiry_date ?? "",
+        description: nftData.description ?? "",
+        formulation: nftData.formulation ?? "",
+        status: nftData.status ?? "",
+        manufacturerAddress:
+          nftData.manufacturerAddress ?? nftData.manufacturer_address ?? "",
+        distributorAddress:
+          nftData.distributorAddress ?? nftData.distributor_address ?? "",
+        pharmacyAddress:
+          nftData.pharmacyAddress ?? nftData.pharmacy_address ?? "",
+        imageUrl: nftData.imageUrl ?? nftData.image_url ?? "",
+      };
+      setDrugData(normalizedNft);
       // Lấy lịch sử vận chuyển
       const msRes = await fetch(
         `${API_BASE_URL}/manufacturer/milestone?nftId=${nftData.id}`
       );
       const msData = await msRes.json();
-      setMilestones(msData || []);
+      const normalizedMilestones = Array.isArray(msData)
+        ? (msData as any[])
+            .map((m) => ({
+              id: m.id,
+              type: m.type,
+              description: m.description,
+              location: m.location,
+              timestamp:
+                m.timestamp ??
+                m.timeStamp ??
+                m.Timestamp ??
+                m.createdAt ??
+                m.created_at,
+              actorAddress: (m.actorAddress ?? m.actor_address ?? "").toLowerCase(),
+            }))
+            .sort(
+              (a, b) =>
+                new Date(a.timestamp).getTime() -
+                new Date(b.timestamp).getTime()
+            )
+        : [];
+      setMilestones(normalizedMilestones);
     } catch (error) {
       toast.error("Có lỗi xảy ra khi tra cứu");
       setDrugData(null);
@@ -121,44 +184,6 @@ function PharmacyContent() {
     }
   };
 
-  const hasConfirmed = milestones.some((m) => m.type === "Đã nhập kho");
-
-  const confirmReceived = async () => {
-    if (!drugData || !account) return;
-    setIsLoading(true);
-    try {
-      const { API_BASE_URL } = await import("@/lib/api");
-      const res = await fetch(`${API_BASE_URL}/manufacturer/milestone`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nftId: drugData.id,
-          type: "Đã nhập kho",
-          description: "Nhà thuốc xác nhận đã nhận lô thuốc",
-          actorAddress: account,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        toast.success("Đã xác nhận nhập kho!");
-        // Reload milestones
-        const msRes = await fetch(
-          `${API_BASE_URL}/manufacturer/milestone?nftId=${drugData.id}`
-        );
-        const msData = await msRes.json();
-        setMilestones(msData || []);
-        // Refresh danh sách NFTs
-        fetchNFTsInPharmacy();
-      } else {
-        toast.error(data.error || "Xác nhận thất bại");
-      }
-    } catch (e) {
-      toast.error("Có lỗi khi xác nhận nhập kho");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -259,65 +284,60 @@ function PharmacyContent() {
               <div>
                 <div className="mb-4">
                   <div className="font-mono text-xs text-gray-500 mb-1">
-                    Số lô: {drugData.batch_number}
+                    Số lô: {drugData.batchNumber}
                   </div>
                   <div className="font-bold text-lg mb-1">{drugData.name}</div>
                   <div className="text-sm text-gray-700 mb-1">
                     ID: {drugData.id}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
-                    Ngày sản xuất: {drugData.manufacture_date}
+                    Ngày sản xuất: {drugData.manufactureDate}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
-                    Hạn dùng: {drugData.expiry_date}
+                    Hạn dùng: {drugData.expiryDate}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Mô tả: {drugData.description}
                   </div>
+                  {drugData.formulation && (
+                    <div className="text-sm text-gray-700 mb-1">
+                      Dạng bào chế: {drugData.formulation}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-700 mb-1">
                     Trạng thái: <b>{drugData.status}</b>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Manufacturer:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.manufacturer_address}
+                      {drugData.manufacturerAddress}
                     </span>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Distributor:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.distributor_address}
+                      {drugData.distributorAddress}
                     </span>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Pharmacy:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.pharmacy_address}
+                      {drugData.pharmacyAddress}
                     </span>
                   </div>
-                  {drugData.image_url && (
+                  {resolveMediaUrl(drugData.imageUrl) ? (
                     <img
-                      src={drugData.image_url}
-                      alt="Ảnh thuốc"
-                      className="max-w-xs rounded my-2"
+                      src={resolveMediaUrl(drugData.imageUrl)}
+                      alt={`Ảnh lô thuốc ${drugData.name}`}
+                      className="max-w-xs rounded my-2 border"
                     />
+                  ) : (
+                    <div className="text-xs text-gray-500 my-2">
+                      Không có ảnh hiển thị
+                    </div>
                   )}
                 </div>
                 {/* Nút xác nhận nhập kho */}
-                {account && !hasConfirmed && (
-                  <Button
-                    onClick={confirmReceived}
-                    disabled={isLoading}
-                    className="mb-4"
-                  >
-                    {isLoading ? "Đang xác nhận..." : "Xác nhận nhập kho"}
-                  </Button>
-                )}
-                {hasConfirmed && (
-                  <div className="mb-4 text-green-600 font-semibold">
-                    Đã xác nhận nhập kho
-                  </div>
-                )}
                 <div className="mt-6">
                   <h4 className="font-semibold mb-2">Lịch sử vận chuyển</h4>
                   {milestones.length === 0 ? (
@@ -348,9 +368,9 @@ function PharmacyContent() {
                               <td className="border px-2 py-1">
                                 {m.description}
                               </td>
-                              <td className="border px-2 py-1">{m.location}</td>
+                              <td className="border px-2 py-1">{m.location || "-"}</td>
                               <td className="border px-2 py-1 font-mono text-xs">
-                                {m.actor_address}
+                                {m.actorAddress}
                               </td>
                             </tr>
                           ))}

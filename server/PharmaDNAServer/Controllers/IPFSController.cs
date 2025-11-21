@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using PharmaDNAServer.Data;
 using PharmaDNAServer.Models;
 using Npgsql;
+using System.Net.Http;
 
 namespace PharmaDNAServer.Controllers;
 
@@ -20,6 +21,100 @@ public class IPFSController : ControllerBase
         _configuration = configuration;
         _context = context;
         _logger = logger;
+    }
+
+    [HttpGet("ipfs-file/{*hash}")]
+    public async Task<IActionResult> ProxyIpfsFile(string hash)
+    {
+        if (string.IsNullOrWhiteSpace(hash))
+        {
+            return BadRequest(new { error = "Thiếu hash IPFS" });
+        }
+
+        var cleaned = hash.Trim()
+            .Replace("\\", "")
+            .Replace("\"", "")
+            .Replace("'", "");
+
+        bool isFullUrl =
+            cleaned.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            cleaned.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+        string targetUrl;
+
+        if (isFullUrl)
+        {
+            targetUrl = cleaned;
+        }
+        else
+        {
+            cleaned = cleaned.Replace("ipfs://", "", StringComparison.OrdinalIgnoreCase)
+                .Trim('/');
+
+            if (cleaned.StartsWith("ipfs://", StringComparison.OrdinalIgnoreCase))
+            {
+                cleaned = cleaned.Substring("ipfs://".Length);
+            }
+            if (cleaned.StartsWith("ipfs/", StringComparison.OrdinalIgnoreCase))
+            {
+                cleaned = cleaned.Substring("ipfs/".Length);
+            }
+
+            if (cleaned.Contains("mypinata.cloud/"))
+            {
+                var parts = cleaned.Split(new[] { "mypinata.cloud/" }, StringSplitOptions.None);
+                cleaned = parts[^1];
+            }
+
+            if (string.IsNullOrWhiteSpace(cleaned))
+            {
+                return BadRequest(new { error = "Hash IPFS không hợp lệ" });
+            }
+
+            var gateway = _configuration["PINATA_GATEWAY"];
+            if (string.IsNullOrWhiteSpace(gateway))
+            {
+                gateway = "https://gateway.pinata.cloud/ipfs/";
+            }
+            if (!gateway.EndsWith("/"))
+            {
+                gateway += "/";
+            }
+
+            targetUrl = $"{gateway}{cleaned}";
+        }
+
+        var gatewayToken = _configuration["PINATA_GATEWAY_TOKEN"];
+        if (!string.IsNullOrWhiteSpace(gatewayToken))
+        {
+            var separator = targetUrl.Contains("?") ? "&" : "?";
+            targetUrl = $"{targetUrl}{separator}pinataGatewayToken={gatewayToken}";
+        }
+
+        try
+        {
+            using var client = new HttpClient();
+            var response = await client.GetAsync(targetUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                var details = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Không thể tải IPFS hash {Hash}. Status: {Status}. Details: {Details}", cleaned, response.StatusCode, details);
+                return StatusCode((int)response.StatusCode, new { error = "Không tải được file từ IPFS", details });
+            }
+
+            var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+            var stream = await response.Content.ReadAsStreamAsync();
+
+            Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
+            Response.Headers["Access-Control-Allow-Origin"] = "*";
+
+            return File(stream, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi proxy IPFS hash {Hash}", cleaned);
+            return StatusCode(500, new { error = "Không thể tải file từ IPFS", details = ex.Message });
+        }
     }
 
     [HttpPost("upload-ipfs")]
