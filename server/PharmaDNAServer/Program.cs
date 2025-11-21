@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 using PharmaDNAServer.Data;
 using DotNetEnv;
 
@@ -11,6 +13,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Ensure JSON binding/output uses camelCase so FE snake_case/camelCase inputs map consistently
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -88,6 +97,9 @@ builder.Services.Configure<PharmaDNAServer.Models.ContractOptions>(options =>
 
 // Register services
 builder.Services.AddSingleton<PharmaDNAServer.Services.BlockchainService>();
+builder.Services.AddScoped<PharmaDNAServer.Services.IRoleService, PharmaDNAServer.Services.RoleService>();
+builder.Services.AddScoped<PharmaDNAServer.Services.IMilestoneService, PharmaDNAServer.Services.MilestoneService>();
+builder.Services.AddScoped<PharmaDNAServer.Services.ISensorService, PharmaDNAServer.Services.SensorService>();
 
 var app = builder.Build();
 

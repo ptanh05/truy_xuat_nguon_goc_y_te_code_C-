@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PharmaDNAServer.Data;
 using PharmaDNAServer.Models;
+using PharmaDNAServer.Services;
 
 namespace PharmaDNAServer.Controllers;
 
@@ -10,10 +11,12 @@ namespace PharmaDNAServer.Controllers;
 public class ManufacturerController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMilestoneService _milestoneService;
 
-    public ManufacturerController(ApplicationDbContext context)
+    public ManufacturerController(ApplicationDbContext context, IMilestoneService milestoneService)
     {
         _context = context;
+        _milestoneService = milestoneService;
     }
 
     [HttpGet]
@@ -169,49 +172,22 @@ public class ManufacturerController : ControllerBase
     [HttpGet("milestone")]
     public async Task<IActionResult> GetMilestones([FromQuery] string? batchNumber, [FromQuery] int? nftId)
     {
-        IQueryable<Milestone> query = _context.Milestones;
-
-        if (!string.IsNullOrEmpty(batchNumber))
-        {
-            var nft = await _context.NFTs.FirstOrDefaultAsync(n => n.BatchNumber == batchNumber);
-            if (nft == null) return Ok(new List<Milestone>());
-            query = query.Where(m => m.NftId == nft.Id);
-        }
-        else if (nftId.HasValue)
-        {
-            query = query.Where(m => m.NftId == nftId.Value);
-        }
-        else
-        {
-            return Ok(new List<Milestone>());
-        }
-
-        var milestones = await query.OrderBy(m => m.Timestamp).ToListAsync();
+        var milestones = await _milestoneService.GetMilestonesAsync(batchNumber, nftId);
         return Ok(milestones);
     }
 
     [HttpPost("milestone")]
     public async Task<IActionResult> CreateMilestone([FromBody] CreateMilestoneRequest request)
     {
-        if (request.NftId == 0 || string.IsNullOrEmpty(request.Type) || string.IsNullOrEmpty(request.ActorAddress))
+        try
         {
-            return BadRequest(new { error = "Thiếu thông tin bắt buộc" });
+            var milestone = await _milestoneService.CreateMilestoneAsync(request);
+            return Ok(new { success = true, milestone });
         }
-
-        var milestone = new Milestone
+        catch (ArgumentException ex)
         {
-            NftId = request.NftId,
-            Type = request.Type,
-            Description = request.Description,
-            Location = request.Location,
-            Timestamp = request.Timestamp ?? DateTime.UtcNow,
-            ActorAddress = request.ActorAddress
-        };
-
-        _context.Milestones.Add(milestone);
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true, milestone });
+            return BadRequest(new { error = ex.Message });
+        }
     }
 }
 

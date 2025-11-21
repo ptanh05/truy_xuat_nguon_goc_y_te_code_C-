@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PharmaDNAServer.Data;
 using PharmaDNAServer.Models;
+using PharmaDNAServer.Services;
 
 namespace PharmaDNAServer.Controllers;
 
@@ -10,10 +12,14 @@ namespace PharmaDNAServer.Controllers;
 public class DistributorController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly ISensorService _sensorService;
+    private readonly ILogger<DistributorController> _logger;
 
-    public DistributorController(ApplicationDbContext context)
+    public DistributorController(ApplicationDbContext context, ISensorService sensorService, ILogger<DistributorController> logger)
     {
         _context = context;
+        _sensorService = sensorService;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -218,6 +224,40 @@ public class DistributorController : ControllerBase
             message = $"✅ Đã hủy yêu cầu chuyển lô NFT #{transferRequest.NftId} thành công!"
         });
     }
+
+    [HttpPost("upload-sensor")]
+    public async Task<IActionResult> UploadSensorData([FromForm] SensorUploadForm form)
+    {
+        if (form.SensorData == null || form.SensorData.Length == 0)
+        {
+            return BadRequest(new { error = "Thiếu file dữ liệu cảm biến" });
+        }
+
+        try
+        {
+            await using var memoryStream = new MemoryStream();
+            await form.SensorData.CopyToAsync(memoryStream);
+
+            var context = new SensorUploadContext(
+                form.NftId,
+                form.DistributorAddress ?? string.Empty,
+                memoryStream.ToArray(),
+                form.SensorData.ContentType
+            );
+
+            var result = await _sensorService.SaveSensorDataAsync(context);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Sensor upload failed for NFT #{NftId}", form.NftId);
+            return StatusCode(500, new { error = "Lỗi xử lý dữ liệu cảm biến" });
+        }
+    }
 }
 
 public class DistributorUpdateNFTRequest
@@ -244,5 +284,12 @@ public class UpdateTransferRequestRequest
 public class CancelTransferRequestRequest
 {
     public int RequestId { get; set; }
+}
+
+public class SensorUploadForm
+{
+    public int NftId { get; set; }
+    public string? DistributorAddress { get; set; }
+    public IFormFile? SensorData { get; set; }
 }
 
