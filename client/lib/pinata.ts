@@ -67,12 +67,19 @@ export async function uploadToPinata(
     );
   }
 
+  const pinataJwt = process.env.NEXT_PUBLIC_PINATA_JWT || process.env.PINATA_JWT;
+  if (!pinataJwt) {
+    throw new Error("PINATA_JWT chưa được cấu hình trong .env");
+  }
+
+  const pinataApiUrl = process.env.NEXT_PUBLIC_PINATA_API_URL || "https://api.pinata.cloud";
+  
   const response = await fetch(
-    "https://api.pinata.cloud/pinning/pinFileToIPFS",
+    `${pinataApiUrl}/pinning/pinFileToIPFS`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.PINATA_JWT}`,
+        Authorization: `Bearer ${pinataJwt}`,
       },
       body: formData,
     }
@@ -90,7 +97,10 @@ export async function uploadToPinata(
  * Lấy file từ IPFS thông qua Pinata gateway
  */
 export function getIPFSUrl(hash: string): string {
-  return `https://gateway.pinata.cloud/ipfs/${hash}`;
+  const pinataGateway = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://gateway.pinata.cloud/ipfs/";
+  // Đảm bảo gateway URL kết thúc bằng /
+  const gateway = pinataGateway.endsWith("/") ? pinataGateway : `${pinataGateway}/`;
+  return `${gateway}${hash}`;
 }
 
 /**

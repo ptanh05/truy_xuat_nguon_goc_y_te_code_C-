@@ -37,6 +37,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import AdminGuard from "@/components/AdminGuard";
 import type { UserRole } from "@/hooks/useRoleAuth";
 import RoleGuard from "@/components/RoleGuard";
+import { toast } from "sonner";
 
 function AdminContent() {
   // Thêm state mới cho quản lý người dùng
@@ -116,7 +117,7 @@ function AdminContent() {
       fetchNFTs(); // Refresh NFTs sau khi cấp quyền
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
-      alert(error.message || "Có lỗi xảy ra");
+      toast.error(error.message || "Có lỗi xảy ra");
     } finally {
       setIsAssigning(false);
     }
@@ -124,19 +125,22 @@ function AdminContent() {
 
   // Hàm xử lý xóa quyền
   const handleRemoveRole = async (address: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa quyền của địa chỉ ${address}?`)) {
-      return;
-    }
-    try {
-      const { api } = await import("@/lib/api");
-      await api.delete("/admin", { address });
-      setSuccessMessage(`✅ Đã xóa quyền của địa chỉ ${address}`);
-      fetchUsers();
-      fetchNFTs(); // Refresh NFTs sau khi xóa user
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (error: any) {
-      alert(error.message || "Có lỗi xảy ra khi xóa quyền");
-    }
+    // Sử dụng toast.promise thay vì confirm
+    toast.promise(
+      (async () => {
+        const { api } = await import("@/lib/api");
+        await api.delete("/admin", { address });
+        setSuccessMessage(`✅ Đã xóa quyền của địa chỉ ${address}`);
+        fetchUsers();
+        fetchNFTs(); // Refresh NFTs sau khi xóa user
+        setTimeout(() => setSuccessMessage(""), 3000);
+      })(),
+      {
+        loading: "Đang xóa quyền...",
+        success: `✅ Đã xóa quyền của địa chỉ ${address}`,
+        error: (error: any) => error.message || "Có lỗi xảy ra khi xóa quyền",
+      }
+    );
   };
 
   // Thêm hàm hủy chỉnh sửa
@@ -163,9 +167,14 @@ function AdminContent() {
   };
 
   const handleLogout = () => {
-    if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
-      adminLogout();
-    }
+    toast.promise(
+      Promise.resolve(adminLogout()),
+      {
+        loading: "Đang đăng xuất...",
+        success: "Đã đăng xuất thành công",
+        error: "Có lỗi xảy ra khi đăng xuất",
+      }
+    );
   };
 
   const stats = {

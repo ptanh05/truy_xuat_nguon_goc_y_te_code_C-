@@ -11,6 +11,10 @@ public interface IRoleService
     ConfigStatus GetConfigStatus();
     Task<RoleAssignmentResult> AssignRoleAsync(string address, string role);
     Task DeleteUserAsync(string address);
+    /// <summary>
+    /// Tự động cấp quyền MANUFACTURER cho địa chỉ ví nếu chưa có quyền
+    /// </summary>
+    Task<RoleAssignmentResult> AutoAssignRoleAsync(string address);
 }
 
 public class RoleService : IRoleService
@@ -40,12 +44,12 @@ public class RoleService : IRoleService
         var hasDatabaseUrl = !string.IsNullOrWhiteSpace(_configuration["DATABASE_URL"]) ||
             !string.IsNullOrWhiteSpace(_configuration.GetConnectionString("DefaultConnection"));
 
-        var pinataGateway = _configuration["PINATA_GATEWAY"];
+        var pinataGateway = _configuration["PINATA_GATEWAY"] ?? "";
 
         return new ConfigStatus(
             hasDatabaseUrl,
             !string.IsNullOrWhiteSpace(_configuration["PINATA_JWT"]),
-            string.IsNullOrWhiteSpace(pinataGateway) ? "https://gateway.pinata.cloud/ipfs/" : pinataGateway!,
+            pinataGateway,
             !string.IsNullOrWhiteSpace(_contractOptions.PharmaNftAddress),
             !string.IsNullOrWhiteSpace(_contractOptions.OwnerPrivateKey),
             !string.IsNullOrWhiteSpace(_contractOptions.RpcUrl)
@@ -105,6 +109,29 @@ public class RoleService : IRoleService
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
         }
+    }
+
+    /// <summary>
+    /// Tự động cấp quyền MANUFACTURER cho địa chỉ ví nếu chưa có quyền
+    /// </summary>
+    public async Task<RoleAssignmentResult> AutoAssignRoleAsync(string address)
+    {
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            throw new ArgumentException("Address is required");
+        }
+
+        var normalizedAddress = address.ToLower();
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Address == normalizedAddress);
+        
+        // Nếu đã có quyền rồi thì không làm gì
+        if (existingUser != null && existingUser.Role == "MANUFACTURER")
+        {
+            return new RoleAssignmentResult(true, $"Địa chỉ {normalizedAddress} đã có quyền MANUFACTURER", false);
+        }
+
+        // Tự động cấp quyền MANUFACTURER
+        return await AssignRoleAsync(normalizedAddress, "MANUFACTURER");
     }
 }
 

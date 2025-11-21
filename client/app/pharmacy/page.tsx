@@ -16,6 +16,7 @@ import QRScanner from "@/components/QRScanner";
 import RoleGuard from "@/components/RoleGuard";
 import { useWallet } from "@/hooks/useWallet";
 import PharmacyTransferRequests from "@/components/PharmacyTransferRequests";
+import { toast } from "sonner";
 
 function PharmacyContent() {
   const [scanMode, setScanMode] = useState<"qr" | "manual">("qr");
@@ -73,19 +74,19 @@ function PharmacyContent() {
       if (!nftRes.ok || !nftData || !nftData.batch_number) {
         setDrugData(null);
         setMilestones([]);
-        alert("Không tìm thấy lô thuốc với số lô này");
+        toast.error("Không tìm thấy lô thuốc với số lô này");
         setIsLoading(false);
         return;
       }
       setDrugData(nftData);
       // Lấy lịch sử vận chuyển
       const msRes = await fetch(
-        `${API_BASE_URL}/manufacturer/milestone?batch_number=${nftData.batch_number}`
+        `${API_BASE_URL}/manufacturer/milestone?nft_id=${nftData.id}`
       );
       const msData = await msRes.json();
       setMilestones(msData || []);
     } catch (error) {
-      alert("Có lỗi xảy ra khi tra cứu");
+      toast.error("Có lỗi xảy ra khi tra cứu");
       setDrugData(null);
       setMilestones([]);
     } finally {
@@ -104,7 +105,7 @@ function PharmacyContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          batch_number: drugData.batch_number,
+          nft_id: drugData.id, // Sử dụng nft_id thay vì batch_number
           type: "Đã nhập kho",
           description: "Nhà thuốc xác nhận đã nhận lô thuốc",
           actor_address: account,
@@ -113,20 +114,20 @@ function PharmacyContent() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("Đã xác nhận nhập kho!");
+        toast.success("Đã xác nhận nhập kho!");
         // Reload milestones
         const msRes = await fetch(
-          `${API_BASE_URL}/manufacturer/milestone?batch_number=${drugData.batch_number}`
+          `${API_BASE_URL}/manufacturer/milestone?nft_id=${drugData.id}`
         );
         const msData = await msRes.json();
         setMilestones(msData || []);
         // Refresh danh sách NFTs
         fetchNFTsInPharmacy();
       } else {
-        alert(data.error || "Xác nhận thất bại");
+        toast.error(data.error || "Xác nhận thất bại");
       }
     } catch (e) {
-      alert("Có lỗi khi xác nhận nhập kho");
+      toast.error("Có lỗi khi xác nhận nhập kho");
     } finally {
       setIsLoading(false);
     }

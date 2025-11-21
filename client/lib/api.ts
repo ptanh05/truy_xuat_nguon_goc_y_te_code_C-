@@ -46,19 +46,53 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    const errorMessage =
-      text.length > 200 ? text.substring(0, 200) + "..." : text;
-    throw new Error(
-      `API call failed: ${response.status} ${response.statusText}${
-        errorMessage ? ` - ${errorMessage}` : ""
-      }`.trim()
-    );
+    let errorMessage = "";
+    let errorData: any = null;
+    
+    try {
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || JSON.stringify(errorData);
+      } else {
+        const text = await response.text();
+        errorMessage = text.length > 200 ? text.substring(0, 200) + "..." : text;
+      }
+    } catch (e) {
+      // Ignore error reading response text
+      errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+    
+    const message = errorMessage
+      ? `API call failed: ${response.status} ${response.statusText} - ${errorMessage}`
+      : `API call failed: ${response.status} ${response.statusText}`;
+    
+    const error = new Error(message) as any;
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
   }
+  
+  // Kiểm tra content-type và xử lý response an toàn
   const contentType = response.headers.get("content-type") || "";
-  return contentType.includes("application/json")
-    ? response.json()
-    : response.text();
+  const text = await response.text();
+  
+  // Nếu response rỗng hoặc không phải JSON, trả về null hoặc text
+  if (!text || text.trim() === "" || text === "undefined") {
+    return null;
+  }
+  
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      // Nếu parse JSON thất bại, trả về text
+      console.warn("Failed to parse JSON response:", text);
+      return text;
+    }
+  }
+  
+  return text;
 }
 
 export const apiRequest = (

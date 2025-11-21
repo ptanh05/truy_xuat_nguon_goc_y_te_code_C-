@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 
 declare global {
   interface Window {
@@ -63,7 +64,7 @@ export function useWallet() {
 
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert("Vui lòng cài đặt MetaMask!")
+      toast.error("Vui lòng cài đặt MetaMask!")
       return
     }
 
@@ -81,9 +82,9 @@ export function useWallet() {
     } catch (error: any) {
       console.error("Error connecting wallet:", error)
       if (error.code === 4001) {
-        alert("Bạn đã từ chối kết nối ví")
+        toast.error("Bạn đã từ chối kết nối ví")
       } else {
-        alert("Có lỗi xảy ra khi kết nối ví")
+        toast.error("Có lỗi xảy ra khi kết nối ví")
       }
     } finally {
       setIsConnecting(false)
@@ -122,7 +123,7 @@ export function useWallet() {
     } catch (error: any) {
       console.error("Error switching network:", error)
       if (error.code === 4902) {
-        alert("Vui lòng thêm mạng Ethereum vào MetaMask")
+        toast.error("Vui lòng thêm mạng Ethereum vào MetaMask")
       }
     }
   }

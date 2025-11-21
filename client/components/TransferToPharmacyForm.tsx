@@ -97,7 +97,7 @@ export default function TransferToPharmacyForm({
     setShowConfirmModal(false);
 
     try {
-      const { api } = await import("@/lib/api");
+      const { api, API_BASE_URL } = await import("@/lib/api");
       const response = await fetch(`${API_BASE_URL}/distributor/transfer-to-pharmacy`, {
         method: "POST",
         headers: {
@@ -142,9 +142,11 @@ export default function TransferToPharmacyForm({
 
   // Hủy yêu cầu chuyển lô
   const handleCancelRequest = async (requestId: number) => {
-    if (!confirm("Bạn có chắc chắn muốn hủy yêu cầu chuyển lô này?")) return;
+    const confirmed = window.confirm("Bạn có chắc chắn muốn hủy yêu cầu chuyển lô này?");
+    if (!confirmed) return;
 
     try {
+      const { API_BASE_URL } = await import("@/lib/api");
       const response = await fetch(`${API_BASE_URL}/distributor/transfer-to-pharmacy`, {
         method: "DELETE",
         headers: {

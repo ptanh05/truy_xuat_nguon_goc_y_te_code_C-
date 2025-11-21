@@ -20,6 +20,7 @@ import { ethers } from "ethers";
 import pharmaNFTAbi from "@/lib/pharmaNFT-abi.json";
 import { useWallet } from "@/hooks/useWallet";
 import TransferToPharmacyForm from "@/components/TransferToPharmacyForm";
+import { toast } from "sonner";
 
 const contractAddress = process.env.NEXT_PUBLIC_PHARMA_NFT_ADDRESS;
 
@@ -87,12 +88,38 @@ function DistributorContent() {
   };
 
   const confirmReceived = async (tokenId: string) => {
+    if (!account || !tokenId) {
+      toast.error("Vui lòng kết nối ví và chọn lô thuốc");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      console.log("TODO: Implement confirm receipt API");
-      alert("Chức năng xác nhận chưa được tích hợp");
-    } catch (error) {
-      alert("Có lỗi xảy ra");
+      const { api } = await import("@/lib/api");
+      const data = await api.post("/distributor/confirm-receipt", {
+        nftId: parseInt(tokenId),
+        distributorAddress: account,
+        note: "Nhà phân phối xác nhận đã nhận lô thuốc từ nhà sản xuất",
+      });
+
+      if (data && data.success) {
+        toast.success(data.message || "✅ Đã xác nhận nhận hàng thành công!");
+        // Refresh danh sách NFTs
+        fetchNFTs();
+        // Refresh milestones nếu đang xem
+        if (selectedNFT === tokenId) {
+          import("@/lib/api").then(({ api: apiRefresh }) =>
+            apiRefresh.get(`/manufacturer/milestone?nft_id=${tokenId}`)
+              .then((msData) => setMilestones(Array.isArray(msData) ? msData : []))
+              .catch(() => setMilestones([]))
+          );
+        }
+      } else {
+        toast.error(data.error || "Xác nhận thất bại");
+      }
+    } catch (error: any) {
+      console.error("Confirm receipt error:", error);
+      toast.error(error.message || "Có lỗi xảy ra khi xác nhận nhận hàng");
     } finally {
       setIsUploading(false);
     }
@@ -110,16 +137,16 @@ function DistributorContent() {
       const res = await fetch(`${API_BASE_URL}/distributor/upload-sensor`, { method: "POST", body: form });
       const data = await res.json();
       if (res.ok && data.success) {
-        alert("Upload dữ liệu cảm biến thành công!");
+        toast.success("Upload dữ liệu cảm biến thành công!");
         setSensorFile(null);
         setSelectedNFT(null);
         // Refresh danh sách NFTs
         fetchNFTs();
       } else {
-        alert(data.error || "Upload thất bại");
+        toast.error(data.error || "Upload thất bại");
       }
     } catch (error) {
-      alert("Có lỗi xảy ra khi upload dữ liệu cảm biến");
+      toast.error("Có lỗi xảy ra khi upload dữ liệu cảm biến");
       console.error("Upload sensor error:", error);
     } finally {
       setIsUploading(false);
@@ -134,7 +161,7 @@ function DistributorContent() {
       const { api } = await import("@/lib/api");
       const data = await api.post("/manufacturer/transfer-request", { nftId: selectedNFT, distributorAddress: account });
       if (data && (data.success === true || data.status === "ok")) {
-        alert(
+        toast.success(
           "Đã gửi yêu cầu nhận lô thành công. Vui lòng chờ nhà sản xuất chấp thuận!"
         );
         // Refresh danh sách NFTs và transfer requests
@@ -145,10 +172,10 @@ function DistributorContent() {
             .catch(() => setTransferRequests([]))
         );
       } else {
-        alert(data.error || "Gửi yêu cầu thất bại");
+        toast.error(data.error || "Gửi yêu cầu thất bại");
       }
     } catch (error) {
-      alert("Có lỗi xảy ra khi gửi yêu cầu nhận lô");
+      toast.error("Có lỗi xảy ra khi gửi yêu cầu nhận lô");
     } finally {
       setIsUploading(false);
     }
@@ -166,7 +193,7 @@ function DistributorContent() {
       const { api } = await import("@/lib/api");
       const data = await api.post("/manufacturer/milestone", { nft_id: selectedNFT, type: milestoneForm.type, description: milestoneForm.description, location: milestoneForm.location, actor_address: account, timestamp: new Date().toISOString() });
       if (data && (data.success === true || data.status === "ok")) {
-        alert("Đã cập nhật mốc vận chuyển!");
+        toast.success("Đã cập nhật mốc vận chuyển!");
         setMilestoneForm({ type: "", description: "", location: "" });
         // Tự động reload lịch sử
         const { api: apiRefresh } = await import("@/lib/api");
@@ -176,10 +203,10 @@ function DistributorContent() {
         // Refresh danh sách NFTs
         fetchNFTs();
       } else {
-        alert(data.error || "Cập nhật thất bại");
+        toast.error(data.error || "Cập nhật thất bại");
       }
     } catch (e) {
-      alert("Có lỗi khi gửi mốc vận chuyển");
+      toast.error("Có lỗi khi gửi mốc vận chuyển");
     } finally {
       setIsUploading(false);
     }
@@ -188,12 +215,12 @@ function DistributorContent() {
   useEffect(() => {
     const checkRoleOnChain = async () => {
       if (!isConnected || !account) return;
+      if (!contractAddress) {
+        setRoleCheckError("Contract address chưa được cấu hình. Vui lòng liên hệ admin.");
+        return;
+      }
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        if (!contractAddress) {
-          setRoleCheckError("Contract address not configured");
-          return;
-        }
         const contract = new ethers.Contract(
           contractAddress,
           pharmaNFTAbi.abi || pharmaNFTAbi,

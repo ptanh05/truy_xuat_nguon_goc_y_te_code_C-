@@ -24,6 +24,7 @@ import {
 import QRScanner from "@/components/QRScanner";
 import Image from "next/image";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 // Mock drug data for public lookup
 const mockPublicData: Record<string, any> = {};
@@ -53,7 +54,7 @@ export default function LookupPage() {
       if (!nftRes.ok || !nftData || !nftData.id) {
         setDrugData(null);
         setMilestones([]);
-        alert("Không tìm thấy lô thuốc với tên này");
+        toast.error("Không tìm thấy lô thuốc với tên này");
         setIsLoading(false);
         return;
       }
@@ -65,7 +66,7 @@ export default function LookupPage() {
       const msData = await msRes.json();
       setMilestones(msData || []);
     } catch (error) {
-      alert("Có lỗi xảy ra khi tra cứu");
+      toast.error("Có lỗi xảy ra khi tra cứu");
       setDrugData(null);
       setMilestones([]);
     } finally {

@@ -28,6 +28,7 @@ import { useWallet } from "@/hooks/useWallet";
 import RoleGuard from "@/components/RoleGuard";
 import { ethers } from "ethers";
 import pharmaNFTAbi from "@/lib/pharmaNFT-abi.json";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -180,11 +181,11 @@ function ManufacturerContent() {
       const { api } = await import("@/lib/api");
       const data = await api.put("/manufacturer/transfer-request", { requestId, nftId, distributorAddress });
       if (data.success) {
-        alert("Chấp thuận thành công!");
+        toast.success("Chấp thuận thành công!");
         // Refresh transfer requests
         fetchTransferRequests();
       } else {
-        alert(data.error || "Chấp thuận thất bại");
+        toast.error(data.error || "Chấp thuận thất bại");
       }
     } finally {
       setIsApproving(false);
@@ -214,15 +215,15 @@ function ManufacturerContent() {
 
   const uploadToIPFS = async () => {
     if (!isConnected) {
-      alert("Vui lòng kết nối ví để tiếp tục");
+      toast.error("Vui lòng kết nối ví để tiếp tục");
       return;
     }
     if (!isCorrectNetwork) {
-      alert("Vui lòng chuyển sang mạng PharmaDNA Chainlet");
+      toast.error("Vui lòng chuyển sang mạng PharmaDNA Chainlet");
       return;
     }
     if (!account) {
-      alert("Không thể lấy địa chỉ ví");
+      toast.error("Không thể lấy địa chỉ ví");
       return;
     }
 
@@ -243,20 +244,38 @@ function ManufacturerContent() {
 
       const { API_BASE_URL } = await import("@/lib/api");
       const res = await fetch(`${API_BASE_URL}/manufacturer/upload-ipfs`, { method: "POST", body: form });
-      const data = await res.json();
+      
+      let data;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await res.json();
+        } catch (e) {
+          const text = await res.text();
+          throw new Error(`Server trả về dữ liệu không hợp lệ: ${text.substring(0, 200)}`);
+        }
+      } else {
+        const text = await res.text();
+        throw new Error(`Server trả về lỗi: ${res.status} ${res.statusText} - ${text.substring(0, 200)}`);
+      }
 
       if (res.ok && data.success) {
         setUploadResult(data);
         setUploadStatus("success");
         // Refresh transfer requests sau khi upload
         fetchTransferRequests();
+        
+        // Database ID đã được lưu và hiển thị trong UI
       } else {
         setUploadStatus("error");
-        alert(data.error || "Upload thất bại");
+        const errorMsg = data.error || data.message || "Upload thất bại";
+        toast.error(errorMsg);
+        console.error("Upload error:", data);
       }
     } catch (error) {
       setUploadStatus("error");
-      alert("Có lỗi xảy ra khi upload IPFS");
+      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra khi upload IPFS";
+      toast.error(errorMessage);
       console.error("Upload error:", error);
     } finally {
       setIsUploading(false);
@@ -265,17 +284,22 @@ function ManufacturerContent() {
 
   const mintNFT = async () => {
     if (!isConnected) {
-      alert("Vui lòng kết nối ví để tiếp tục");
+      toast.error("Vui lòng kết nối ví để tiếp tục");
       return;
     }
 
     if (!isCorrectNetwork) {
-      alert("Vui lòng chuyển sang đúng mạng PharmaDNA Chainlet");
+      toast.error("Vui lòng chuyển sang đúng mạng PharmaDNA Chainlet");
       return;
     }
 
     if (!uploadResult?.IpfsHash) {
-      alert("Chưa có IPFS hash để mint NFT");
+      toast.error("Chưa có IPFS hash để mint NFT");
+      return;
+    }
+
+    if (!contractAddress) {
+      toast.error("Contract address chưa được cấu hình. Vui lòng liên hệ admin.");
       return;
     }
 
@@ -284,22 +308,17 @@ function ManufacturerContent() {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      if (!contractAddress) {
-        throw new Error("Contract address not configured");
-      }
       const contract = new ethers.Contract(
-        contractAddress!,
+        contractAddress,
         pharmaNFTAbi.abi || pharmaNFTAbi,
         signer
       );
-      // Log để debug
-      console.log("Minting with account:", account);
-      console.log("IPFS Hash:", uploadResult.IpfsHash);
-      console.log("Contract address:", contractAddress);
+      
+      toast.loading("Đang mint NFT trên blockchain...");
       const tx = await contract.mintProductNFT(uploadResult.IpfsHash);
       await tx.wait();
       setUploadStatus("success");
-      alert("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
+      toast.success("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
 
       // Refresh transfer requests sau khi mint
       fetchTransferRequests();
@@ -310,15 +329,16 @@ function ManufacturerContent() {
       }, 2000); // Đợi 2 giây để người dùng thấy thông báo thành công
     } catch (error: any) {
       setUploadStatus("error");
+      toast.dismiss(); // Dismiss loading toast
       if (
         error?.message?.includes("Invalid role") ||
         error?.message?.includes("revert")
       ) {
-        alert(
+        toast.error(
           "Ví của bạn chưa được cấp quyền Manufacturer trên contract. Hãy liên hệ admin để được cấp quyền."
         );
       } else {
-        alert(error?.message || "Mint NFT thất bại");
+        toast.error(error?.message || "Mint NFT thất bại");
       }
       console.error("Mint NFT error:", error);
     } finally {
@@ -603,12 +623,11 @@ function ManufacturerContent() {
                   <Button
                     variant="link"
                     className="p-0 h-auto mt-2"
-                    onClick={() =>
-                      window.open(
-                        `https://gateway.pinata.cloud/ipfs/${uploadResult.IpfsHash}`,
-                        "_blank"
-                      )
-                    }
+                    onClick={() => {
+                      const gateway = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://gateway.pinata.cloud/ipfs/";
+                      const gatewayUrl = gateway.endsWith("/") ? gateway : `${gateway}/`;
+                      window.open(`${gatewayUrl}${uploadResult.IpfsHash}`, "_blank");
+                    }}
                   >
                     <ExternalLink className="w-4 h-4 mr-1" />
                     Xem trên IPFS Gateway
@@ -645,12 +664,13 @@ function ManufacturerContent() {
                             variant="link"
                             size="sm"
                             className="p-0 h-auto ml-2"
-                            onClick={() =>
-                              window.open(
-                                `https://gateway.pinata.cloud/${fileHash}`,
-                                "_blank"
-                              )
-                            }
+                            onClick={() => {
+                              const gateway = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://gateway.pinata.cloud/ipfs/";
+                              const gatewayUrl = gateway.endsWith("/") ? gateway : `${gateway}/`;
+                              // Remove ipfs/ prefix if fileHash already has it
+                              const hash = fileHash.replace("ipfs/", "");
+                              window.open(`${gatewayUrl}${hash}`, "_blank");
+                            }}
                           >
                             <ExternalLink className="w-3 h-3" />
                           </Button>

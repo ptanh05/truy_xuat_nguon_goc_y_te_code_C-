@@ -8,10 +8,20 @@ interface AdminAuthState {
   isLoading: boolean
 }
 
-const ADMIN_CREDENTIALS = {
-  username: "Admin123",
-  password: "Admin123",
-}
+// Admin credentials từ environment variables
+// Fallback về default cho development (KHÔNG dùng trong production)
+const getAdminCredentials = () => {
+  if (typeof window !== "undefined") {
+    return {
+      username: process.env.NEXT_PUBLIC_ADMIN_USERNAME || "Admin123",
+      password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "Admin123",
+    };
+  }
+  return {
+    username: "Admin123",
+    password: "Admin123",
+  };
+};
 
 export function useAdminAuth() {
   const [authState, setAuthState] = useState<AdminAuthState>({
@@ -56,6 +66,7 @@ export function useAdminAuth() {
     // Giả lập delay API call
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
+    const ADMIN_CREDENTIALS = getAdminCredentials();
     if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
       // Tạo token đơn giản (trong thực tế nên dùng JWT)
       const token = btoa(`${username}:${Date.now()}`)

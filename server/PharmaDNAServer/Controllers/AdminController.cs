@@ -52,6 +52,28 @@ public class AdminController : ControllerBase
         await _roleService.DeleteUserAsync(request.Address);
         return Ok(new { success = true });
     }
+
+    /// <summary>
+    /// Tự động cấp quyền MANUFACTURER cho địa chỉ ví nếu chưa có quyền
+    /// </summary>
+    [HttpPost("auto-assign-role")]
+    public async Task<IActionResult> AutoAssignRole([FromBody] AutoAssignRoleRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Address))
+        {
+            return BadRequest(new { error = "Thiếu địa chỉ" });
+        }
+
+        try
+        {
+            var result = await _roleService.AutoAssignRoleAsync(request.Address);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 }
 
 public class AssignRoleRequest
@@ -61,6 +83,11 @@ public class AssignRoleRequest
 }
 
 public class DeleteUserRequest
+{
+    public string Address { get; set; } = string.Empty;
+}
+
+public class AutoAssignRoleRequest
 {
     public string Address { get; set; } = string.Empty;
 }

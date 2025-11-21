@@ -1,15 +1,18 @@
+using Microsoft.EntityFrameworkCore;
 using PharmaDNAServer.Data;
+using PharmaDNAServer.Models;
 
 namespace PharmaDNAServer.Services;
 
 public interface ISensorService
 {
     Task<SensorUploadResult> SaveSensorDataAsync(SensorUploadContext context);
+    Task<IEnumerable<SensorLog>> GetSensorLogsAsync(int nftId);
 }
 
 /// <summary>
-/// Placeholder service for future AIoT sensor data integration.
-/// Keeps validation + logging centralized even before persistence layer is ready.
+/// Service xử lý dữ liệu cảm biến AIoT từ nhà phân phối
+/// Lưu trữ vào database và có thể trigger xử lý bất đồng bộ
 /// </summary>
 public class SensorService : ISensorService
 {
@@ -22,7 +25,7 @@ public class SensorService : ISensorService
         _logger = logger;
     }
 
-    public Task<SensorUploadResult> SaveSensorDataAsync(SensorUploadContext context)
+    public async Task<SensorUploadResult> SaveSensorDataAsync(SensorUploadContext context)
     {
         if (context.NftId <= 0)
         {
@@ -39,11 +42,45 @@ public class SensorService : ISensorService
             throw new ArgumentException("Payload cảm biến trống");
         }
 
-        _logger.LogInformation("Sensor payload queued for NFT #{NftId} ({Distributor}) - {Bytes} bytes",
-            context.NftId, context.DistributorAddress, context.Payload.Length);
+        // Kiểm tra NFT có tồn tại không
+        var nft = await _context.NFTs.FindAsync(context.NftId);
+        if (nft == null)
+        {
+            throw new ArgumentException($"NFT #{context.NftId} không tồn tại");
+        }
 
-        // TODO: Persist to SensorLogs table and trigger downstream processing queue.
-        return Task.FromResult(new SensorUploadResult(true, "Payload đã được ghi nhận và sẽ xử lý bất đồng bộ."));
+        // Tạo SensorLog và lưu vào database
+        var sensorLog = new SensorLog
+        {
+            NftId = context.NftId,
+            DistributorAddress = context.DistributorAddress.ToLower(),
+            Payload = context.Payload,
+            MimeType = context.MimeType,
+            CreatedAt = DateTime.UtcNow,
+            ProcessedStatus = "pending"
+        };
+
+        _context.SensorLogs.Add(sensorLog);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Sensor payload saved for NFT #{NftId} ({Distributor}) - {Bytes} bytes, LogId: {LogId}",
+            context.NftId, context.DistributorAddress, context.Payload.Length, sensorLog.Id);
+
+        // TODO: Trigger downstream processing queue (Hangfire, RabbitMQ, Azure Service Bus, etc.)
+        // Ví dụ: await _queueService.EnqueueAsync("process-sensor-data", sensorLog.Id);
+
+        return new SensorUploadResult(
+            true, 
+            $"Payload đã được lưu vào database (LogId: {sensorLog.Id}) và sẽ được xử lý bất đồng bộ.");
+    }
+
+    public async Task<IEnumerable<SensorLog>> GetSensorLogsAsync(int nftId)
+    {
+        return await _context.SensorLogs
+            .Where(s => s.NftId == nftId)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync();
     }
 }
 

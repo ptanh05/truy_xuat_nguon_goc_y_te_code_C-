@@ -24,10 +24,13 @@ builder.Services.Configure<JsonOptions>(options =>
 // Add CORS
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration["CORS_ORIGINS"]?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        ?? new[] { "http://localhost:3000", "http://localhost:3001" };
+    
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+            policy.WithOrigins(allowedOrigins)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();

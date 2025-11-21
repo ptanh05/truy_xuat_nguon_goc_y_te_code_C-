@@ -47,24 +47,53 @@ public class ManufacturerController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateNFT([FromBody] CreateNFTRequest request)
     {
-        if (string.IsNullOrEmpty(request.Name) || string.IsNullOrEmpty(request.Status) || string.IsNullOrEmpty(request.ManufacturerAddress))
+        if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "Thiếu thông tin" });
+            return BadRequest(new { error = "Tên thuốc không được để trống" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Status))
+        {
+            return BadRequest(new { error = "Trạng thái không được để trống" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ManufacturerAddress))
+        {
+            return BadRequest(new { error = "Địa chỉ nhà sản xuất không được để trống" });
+        }
+
+        // Kiểm tra batch number đã tồn tại chưa (nếu có)
+        if (!string.IsNullOrWhiteSpace(request.BatchNumber))
+        {
+            var existingNft = await _context.NFTs
+                .FirstOrDefaultAsync(n => n.BatchNumber == request.BatchNumber);
+            if (existingNft != null)
+            {
+                return BadRequest(new { error = $"Số lô {request.BatchNumber} đã tồn tại trong hệ thống" });
+            }
         }
 
         var now = DateTime.UtcNow;
         var nft = new NFT
         {
             Name = request.Name,
+            BatchNumber = request.BatchNumber,
             Status = request.Status,
-            ManufacturerAddress = request.ManufacturerAddress,
+            ManufacturerAddress = request.ManufacturerAddress.ToLower(),
             CreatedAt = now
         };
 
-        _context.NFTs.Add(nft);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.NFTs.Add(nft);
+            await _context.SaveChangesAsync();
 
-        return Ok(nft);
+            return Ok(nft);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Lỗi khi lưu NFT vào database", message = ex.Message });
+        }
     }
 
     [HttpPut]
@@ -146,26 +175,53 @@ public class ManufacturerController : ControllerBase
             return BadRequest(new { error = "Thiếu thông tin" });
         }
 
-        var transferRequest = await _context.TransferRequests.FindAsync(request.RequestId);
-        if (transferRequest == null)
+        // Validate address format
+        if (!request.DistributorAddress.StartsWith("0x") || request.DistributorAddress.Length != 42)
         {
-            return NotFound(new { error = "Không tìm thấy yêu cầu" });
+            return BadRequest(new { error = "Địa chỉ nhà phân phối không hợp lệ" });
         }
 
-        transferRequest.Status = "approved";
-        _context.TransferRequests.Update(transferRequest);
-
-        var nft = await _context.NFTs.FindAsync(request.NftId);
-        if (nft != null)
+        // Sử dụng transaction để đảm bảo data consistency
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            nft.DistributorAddress = request.DistributorAddress;
+            var transferRequest = await _context.TransferRequests.FindAsync(request.RequestId);
+            if (transferRequest == null)
+            {
+                return NotFound(new { error = "Không tìm thấy yêu cầu" });
+            }
+
+            if (transferRequest.Status != "pending")
+            {
+                return BadRequest(new { error = $"Yêu cầu đã được xử lý. Trạng thái hiện tại: {transferRequest.Status}" });
+            }
+
+            var nft = await _context.NFTs.FindAsync(request.NftId);
+            if (nft == null)
+            {
+                return NotFound(new { error = "Không tìm thấy NFT" });
+            }
+
+            // Update transfer request
+            transferRequest.Status = "approved";
+            transferRequest.UpdatedAt = DateTime.UtcNow;
+            _context.TransferRequests.Update(transferRequest);
+
+            // Update NFT
+            nft.DistributorAddress = request.DistributorAddress.ToLower();
             nft.Status = "in_transit";
             _context.NFTs.Update(nft);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { success = true });
         }
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new { success = true });
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, new { error = "Lỗi khi duyệt yêu cầu chuyển giao", message = ex.Message });
+        }
     }
 
     // Milestone endpoints
@@ -194,6 +250,7 @@ public class ManufacturerController : ControllerBase
 public class CreateNFTRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string? BatchNumber { get; set; }
     public string Status { get; set; } = string.Empty;
     public string ManufacturerAddress { get; set; } = string.Empty;
 }

@@ -28,9 +28,32 @@ public class PharmacyController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> UpdateNFT([FromBody] PharmacyUpdateNFTRequest request)
     {
-        if (request.Id == 0 || string.IsNullOrEmpty(request.Status) || string.IsNullOrEmpty(request.PharmacyAddress))
+        if (request.Id == 0)
         {
-            return BadRequest(new { error = "Thiếu thông tin" });
+            return BadRequest(new { error = "NFT ID không được để trống" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Status))
+        {
+            return BadRequest(new { error = "Trạng thái không được để trống" });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PharmacyAddress))
+        {
+            return BadRequest(new { error = "Địa chỉ nhà thuốc không được để trống" });
+        }
+
+        // Validate address format
+        if (!request.PharmacyAddress.StartsWith("0x") || request.PharmacyAddress.Length != 42)
+        {
+            return BadRequest(new { error = "Địa chỉ nhà thuốc không hợp lệ" });
+        }
+
+        // Validate status values
+        var validStatuses = new[] { "in_pharmacy", "sold", "expired" };
+        if (!validStatuses.Contains(request.Status.ToLower()))
+        {
+            return BadRequest(new { error = $"Trạng thái không hợp lệ. Các trạng thái hợp lệ: {string.Join(", ", validStatuses)}" });
         }
 
         var nft = await _context.NFTs.FindAsync(request.Id);
@@ -39,8 +62,8 @@ public class PharmacyController : ControllerBase
             return NotFound(new { error = "Không tìm thấy NFT" });
         }
 
-        nft.Status = request.Status;
-        nft.PharmacyAddress = request.PharmacyAddress;
+        nft.Status = request.Status.ToLower();
+        nft.PharmacyAddress = request.PharmacyAddress.ToLower();
         _context.NFTs.Update(nft);
         await _context.SaveChangesAsync();
 
