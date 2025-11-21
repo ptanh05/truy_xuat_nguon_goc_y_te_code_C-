@@ -53,6 +53,11 @@ function AdminContent() {
   } | null>(null);
   const [userList, setUserList] = useState<any[]>([]);
   const [nftList, setNftList] = useState<any[]>([]);
+  const dispatchRoleUpdated = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("roleUpdated"));
+    }
+  };
 
   // Lấy danh sách user từ API
   const fetchUsers = async () => {
@@ -115,6 +120,7 @@ function AdminContent() {
       setEditingUser(null);
       fetchUsers();
       fetchNFTs(); // Refresh NFTs sau khi cấp quyền
+      dispatchRoleUpdated();
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error: any) {
       toast.error(error.message || "Có lỗi xảy ra");
@@ -133,6 +139,7 @@ function AdminContent() {
         setSuccessMessage(`✅ Đã xóa quyền của địa chỉ ${address}`);
         fetchUsers();
         fetchNFTs(); // Refresh NFTs sau khi xóa user
+        dispatchRoleUpdated();
         setTimeout(() => setSuccessMessage(""), 3000);
       })(),
       {

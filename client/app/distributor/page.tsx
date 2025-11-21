@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,6 +42,56 @@ function DistributorContent() {
   });
   const [transferRequests, setTransferRequests] = useState<any[]>([]);
   const [canAddMilestone, setCanAddMilestone] = useState(false);
+
+  const normalizedAccount = account?.toLowerCase() ?? "";
+  const transferRequestGuard = useMemo(() => {
+    if (!selectedNFT) {
+      return {
+        canRequest: false,
+        message: "Chọn một lô thuốc để gửi yêu cầu nhận.",
+      };
+    }
+
+    const selectedId = Number(selectedNFT);
+    const list = (Array.isArray(transferRequests) ? transferRequests : [])
+      .map((req: any) => ({
+        nftId: Number(req?.nftId ?? req?.nft_id),
+        distributor: (req?.distributorAddress ?? req?.distributor_address ?? "").toLowerCase(),
+        status: (req?.status ?? "").toLowerCase(),
+      }))
+      .filter((req) => req.nftId === selectedId);
+
+    const approved = list.find((req) => req.status === "approved");
+    if (approved) {
+      return {
+        canRequest: false,
+        message:
+          approved.distributor === normalizedAccount
+            ? "Yêu cầu của bạn đã được nhà thuốc chấp thuận."
+            : "Lô này đã được nhà thuốc chấp thuận cho ví khác.",
+      };
+    }
+
+    const pendingCurrent = list.find(
+      (req) => req.status === "pending" && req.distributor === normalizedAccount
+    );
+    if (pendingCurrent) {
+      return {
+        canRequest: false,
+        message: "Bạn đã gửi yêu cầu và đang chờ nhà thuốc phản hồi.",
+      };
+    }
+
+    const pendingAnother = list.find((req) => req.status === "pending");
+    if (pendingAnother) {
+      return {
+        canRequest: false,
+        message: "Nhà thuốc đang xử lý yêu cầu của ví khác.",
+      };
+    }
+
+    return { canRequest: true, message: "" };
+  }, [selectedNFT, transferRequests, normalizedAccount]);
 
   // Lấy danh sách NFT đã mint ra từ manufacturer
   const fetchNFTs = async () => {
@@ -109,7 +159,7 @@ function DistributorContent() {
         // Refresh milestones nếu đang xem
         if (selectedNFT === tokenId) {
           import("@/lib/api").then(({ api: apiRefresh }) =>
-            apiRefresh.get(`/manufacturer/milestone?nft_id=${tokenId}`)
+            apiRefresh.get(`/manufacturer/milestone?nftId=${tokenId}`)
               .then((msData) => setMilestones(Array.isArray(msData) ? msData : []))
               .catch(() => setMilestones([]))
           );
@@ -156,6 +206,14 @@ function DistributorContent() {
   // Thêm hàm gửi yêu cầu nhận lô
   const requestTransfer = async () => {
     if (!selectedNFT || !account) return;
+    if (!transferRequestGuard.canRequest) {
+      toast.error(
+        transferRequestGuard.message ||
+          "Không thể gửi yêu cầu nhận lô tại thời điểm này."
+      );
+      return;
+    }
+
     setIsUploading(true);
     try {
       const { api } = await import("@/lib/api");
@@ -191,13 +249,56 @@ function DistributorContent() {
     setIsUploading(true);
     try {
       const { api } = await import("@/lib/api");
-      const data = await api.post("/manufacturer/milestone", { nft_id: selectedNFT, type: milestoneForm.type, description: milestoneForm.description, location: milestoneForm.location, actor_address: account, timestamp: new Date().toISOString() });
+      const payload = {
+        nftId: Number(selectedNFT),
+        type: milestoneForm.type,
+        description: milestoneForm.description,
+        location: milestoneForm.location,
+        actorAddress: account,
+        timestamp: new Date().toISOString(),
+      };
+      const data = await api.post("/manufacturer/milestone", payload);
       if (data && (data.success === true || data.status === "ok")) {
         toast.success("Đã cập nhật mốc vận chuyển!");
+
+        // Lấy milestone vừa tạo (dịch camelCase/snake_case)
+        const newlyCreated =
+          data.milestone ??
+          data.data ??
+          {
+            nftId: payload.nftId,
+            type: payload.type,
+            description: payload.description,
+            location: payload.location,
+            timestamp: payload.timestamp,
+            actorAddress: payload.actorAddress,
+          };
+
+        setMilestones((prev: any[]) => {
+          const list = Array.isArray(prev) ? [...prev] : [];
+          const formatted = {
+            id: newlyCreated.id,
+            nft_id: newlyCreated.nft_id ?? newlyCreated.nftId ?? payload.nftId,
+            type: newlyCreated.type,
+            description: newlyCreated.description,
+            location: newlyCreated.location,
+            timestamp: newlyCreated.timestamp,
+            actor_address:
+              newlyCreated.actor_address ??
+              newlyCreated.actorAddress ??
+              payload.actorAddress,
+          };
+          const merged = [...list, formatted];
+          return merged.sort(
+            (a, b) =>
+              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+        });
+
         setMilestoneForm({ type: "", description: "", location: "" });
         // Tự động reload lịch sử
         const { api: apiRefresh } = await import("@/lib/api");
-        apiRefresh.get(`/manufacturer/milestone?nft_id=${selectedNFT}`)
+        apiRefresh.get(`/manufacturer/milestone?nftId=${selectedNFT}`)
           .then((data) => setMilestones(Array.isArray(data) ? data : []))
           .catch(() => setMilestones([]));
         // Refresh danh sách NFTs
@@ -242,7 +343,7 @@ function DistributorContent() {
   useEffect(() => {
     if (selectedNFT) {
       import("@/lib/api").then(({ api }) =>
-        api.get(`/manufacturer/milestone?nft_id=${selectedNFT}`)
+        api.get(`/manufacturer/milestone?nftId=${selectedNFT}`)
           .then((data) => setMilestones(data))
           .catch(() => setMilestones([]))
       );
@@ -253,25 +354,38 @@ function DistributorContent() {
 
   // Lấy danh sách transfer-request khi chọn NFT hoặc account đổi
   useEffect(() => {
-    if (selectedNFT && account) {
-      import("@/lib/api").then(({ api }) =>
-        api.get("/manufacturer/transfer-request").then((data) => {
-          setTransferRequests(data);
-          const approved = data.find(
-            (r: any) =>
-              r.nft_id == selectedNFT &&
-              r.distributor_address?.toLowerCase() === account.toLowerCase() &&
-              r.status === "approved"
+    const fetchTransferRequests = async () => {
+      if (!selectedNFT || !account) {
+        setCanAddMilestone(false);
+        return;
+      }
+
+      try {
+        const { api } = await import("@/lib/api");
+        const data = await api.get("/manufacturer/transfer-request");
+        setTransferRequests(Array.isArray(data) ? data : []);
+
+        const approved = (Array.isArray(data) ? data : []).find((r: any) => {
+          const nftId = r?.nftId ?? r?.nft_id;
+          const distributorAddr =
+            (r?.distributorAddress ?? r?.distributor_address ?? "").toLowerCase();
+          const status = (r?.status ?? "").toLowerCase();
+
+          return (
+            Number(nftId) === Number(selectedNFT) &&
+            distributorAddr === account.toLowerCase() &&
+            status === "approved"
           );
-          setCanAddMilestone(!!approved);
-        }).catch(() => {
-          setTransferRequests([]);
-          setCanAddMilestone(false);
-        })
-      );
-    } else {
-      setCanAddMilestone(false);
-    }
+        });
+
+        setCanAddMilestone(Boolean(approved));
+      } catch {
+        setTransferRequests([]);
+        setCanAddMilestone(false);
+      }
+    };
+
+    fetchTransferRequests();
   }, [selectedNFT, account]);
 
   return (
@@ -337,7 +451,7 @@ function DistributorContent() {
                               size="sm"
                               variant="secondary"
                               onClick={requestTransfer}
-                              disabled={isUploading}
+                              disabled={isUploading || !transferRequestGuard.canRequest}
                             >
                               Gửi yêu cầu nhận lô
                             </Button>
@@ -350,6 +464,12 @@ function DistributorContent() {
                               <Truck className="w-4 h-4 mr-1" />
                               Chuyển sang nhà thuốc
                             </Button>
+                              {!transferRequestGuard.canRequest &&
+                                transferRequestGuard.message && (
+                                  <p className="text-xs text-red-500 mt-1 w-full text-left">
+                                    {transferRequestGuard.message}
+                                  </p>
+                                )}
                           </>
                         )}
                       </div>

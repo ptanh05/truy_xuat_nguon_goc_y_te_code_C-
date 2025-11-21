@@ -222,6 +222,17 @@ public class DistributorController : ControllerBase
                 nft.PharmacyAddress = request.PharmacyAddress.ToLower();
                 nft.Status = "in_pharmacy";
                 _context.NFTs.Update(nft);
+
+                var milestone = new Milestone
+                {
+                    NftId = transferRequest.NftId,
+                    Type = "Đã nhập kho nhà thuốc",
+                    Description = transferRequest.TransferNote ?? $"Nhà thuốc {request.PharmacyAddress} đã nhận và nhập kho.",
+                    Location = null,
+                    Timestamp = DateTime.UtcNow,
+                    ActorAddress = request.PharmacyAddress.ToLower()
+                };
+                _context.Milestones.Add(milestone);
             }
 
             _context.TransferRequests.Update(transferRequest);

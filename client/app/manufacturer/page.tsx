@@ -311,6 +311,7 @@ function ManufacturerContent() {
 
     setIsUploading(true);
     setUploadStatus("idle");
+    let loadingToastId: string | number | undefined;
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -320,9 +321,10 @@ function ManufacturerContent() {
         signer
       );
       
-      toast.loading("Đang mint NFT trên blockchain...");
+      loadingToastId = toast.loading("Đang mint NFT trên blockchain...");
       const tx = await contract.mintProductNFT(uploadResult.ipfsHash);
       await tx.wait();
+      toast.dismiss(loadingToastId);
       setUploadStatus("success");
       toast.success("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
 
@@ -335,7 +337,11 @@ function ManufacturerContent() {
       }, 2000); // Đợi 2 giây để người dùng thấy thông báo thành công
     } catch (error: any) {
       setUploadStatus("error");
-      toast.dismiss(); // Dismiss loading toast
+      if (loadingToastId) {
+        toast.dismiss(loadingToastId); // Dismiss specific loading toast if exists
+      } else {
+        toast.dismiss(); // Fallback dismiss
+      }
       if (
         error?.message?.includes("Invalid role") ||
         error?.message?.includes("revert")
@@ -754,9 +760,9 @@ function ManufacturerContent() {
               transferRequests.map((req) => (
                 <TableRow key={req.id}>
                   <TableCell>{req.id}</TableCell>
-                  <TableCell>#{req.nft_id}</TableCell>
+                  <TableCell>#{req.nftId ?? req.nft_id}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {req.distributor_address}
+                    {req.distributorAddress ?? req.distributor_address}
                   </TableCell>
                   <TableCell>
                     {req.status === "approved" ? (
@@ -774,8 +780,8 @@ function ManufacturerContent() {
                         onClick={() =>
                           approveTransfer(
                             req.id,
-                            req.nft_id,
-                            req.distributor_address
+                            req.nftId ?? req.nft_id,
+                            (req.distributorAddress ?? req.distributor_address) ?? ""
                           )
                         }
                         disabled={isApproving}

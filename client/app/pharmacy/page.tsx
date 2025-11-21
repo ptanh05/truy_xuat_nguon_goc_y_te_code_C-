@@ -26,6 +26,7 @@ function PharmacyContent() {
   const [milestones, setMilestones] = useState<any[]>([]);
   const [showTransferRequests, setShowTransferRequests] = useState(false);
   const [nftList, setNftList] = useState<any[]>([]);
+  const [pendingTransferCount, setPendingTransferCount] = useState(0);
 
   const { account } = useWallet();
 
@@ -44,10 +45,36 @@ function PharmacyContent() {
     fetchNFTsInPharmacy();
   }, []);
 
+  const fetchPendingTransferCount = async () => {
+    if (!account) {
+      setPendingTransferCount(0);
+      return;
+    }
+    try {
+      const { API_BASE_URL } = await import("@/lib/api");
+      const res = await fetch(
+        `${API_BASE_URL}/distributor/transfer-to-pharmacy?pharmacyAddress=${account}&status=pending`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setPendingTransferCount(Array.isArray(data) ? data.length : 0);
+      } else {
+        setPendingTransferCount(0);
+      }
+    } catch {
+      setPendingTransferCount(0);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingTransferCount();
+  }, [account]);
+
   // Auto-refresh mỗi 10 giây
   useEffect(() => {
     const interval = setInterval(() => {
       fetchNFTsInPharmacy();
+      fetchPendingTransferCount();
       // Refresh milestones nếu đang xem drugData
       if (drugData?.batchNumber) {
         lookupDrug(drugData.batchNumber);
@@ -68,7 +95,7 @@ function PharmacyContent() {
       // Lấy thông tin NFT theo batch_number
       const { API_BASE_URL } = await import("@/lib/api");
       const nftRes = await fetch(
-        `${API_BASE_URL}/manufacturer?batch_number=${encodeURIComponent(batch_number)}`
+        `${API_BASE_URL}/manufacturer?batchNumber=${encodeURIComponent(batch_number)}`
       );
       const nftData = await nftRes.json();
       if (!nftRes.ok || !nftData || !nftData.batch_number) {
@@ -81,7 +108,7 @@ function PharmacyContent() {
       setDrugData(nftData);
       // Lấy lịch sử vận chuyển
       const msRes = await fetch(
-        `${API_BASE_URL}/manufacturer/milestone?nft_id=${nftData.id}`
+        `${API_BASE_URL}/manufacturer/milestone?nftId=${nftData.id}`
       );
       const msData = await msRes.json();
       setMilestones(msData || []);
@@ -105,10 +132,10 @@ function PharmacyContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          nft_id: drugData.id, // Sử dụng nft_id thay vì batch_number
+          nftId: drugData.id,
           type: "Đã nhập kho",
           description: "Nhà thuốc xác nhận đã nhận lô thuốc",
-          actor_address: account,
+          actorAddress: account,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -117,7 +144,7 @@ function PharmacyContent() {
         toast.success("Đã xác nhận nhập kho!");
         // Reload milestones
         const msRes = await fetch(
-          `${API_BASE_URL}/manufacturer/milestone?nft_id=${drugData.id}`
+          `${API_BASE_URL}/manufacturer/milestone?nftId=${drugData.id}`
         );
         const msData = await msRes.json();
         setMilestones(msData || []);
@@ -151,7 +178,7 @@ function PharmacyContent() {
             className="flex items-center"
           >
             <Truck className="w-4 h-4 mr-2" />
-            Yêu cầu chuyển lô
+            Yêu cầu chuyển lô ({pendingTransferCount})
           </Button>
         </div>
       </div>
@@ -389,7 +416,10 @@ function PharmacyContent() {
       {/* Yêu cầu chuyển lô từ nhà phân phối */}
       {showTransferRequests && (
         <div className="mt-8">
-          <PharmacyTransferRequests pharmacyAddress={account || ""} />
+          <PharmacyTransferRequests
+            pharmacyAddress={account || ""}
+            onPendingCountChange={setPendingTransferCount}
+          />
         </div>
       )}
     </div>

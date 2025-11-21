@@ -9,21 +9,23 @@ import { Package, Clock, CheckCircle, XCircle, Truck } from "lucide-react";
 
 interface TransferRequest {
   id: number;
-  nft_id: number;
-  distributor_address: string;
-  pharmacy_address: string;
-  transfer_note: string;
+  nftId: number;
+  distributorAddress: string;
+  pharmacyAddress: string;
+  transferNote: string | null;
   status: "pending" | "approved" | "rejected" | "cancelled";
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 interface PharmacyTransferRequestsProps {
   pharmacyAddress: string;
+  onPendingCountChange?: (count: number) => void;
 }
 
 export default function PharmacyTransferRequests({
   pharmacyAddress,
+  onPendingCountChange,
 }: PharmacyTransferRequestsProps) {
   const [transferRequests, setTransferRequests] = useState<TransferRequest[]>(
     []
@@ -36,15 +38,36 @@ export default function PharmacyTransferRequests({
 
   // Lấy danh sách yêu cầu chuyển lô
   const fetchTransferRequests = async () => {
+    if (!pharmacyAddress) {
+      setTransferRequests([]);
+      onPendingCountChange?.(0);
+      return;
+    }
     setIsLoading(true);
     try {
       const { API_BASE_URL } = await import("@/lib/api");
       const response = await fetch(
-        `${API_BASE_URL}/distributor/transfer-to-pharmacy?pharmacy_address=${pharmacyAddress}`
+        `${API_BASE_URL}/distributor/transfer-to-pharmacy?pharmacyAddress=${pharmacyAddress}`
       );
       if (response.ok) {
         const requests = await response.json();
-        setTransferRequests(requests);
+        const normalized = Array.isArray(requests)
+          ? requests.map((req: any) => ({
+              id: req.id,
+              nftId: req.nftId ?? req.nft_id,
+              distributorAddress: req.distributorAddress ?? req.distributor_address,
+              pharmacyAddress: req.pharmacyAddress ?? req.pharmacy_address,
+              transferNote: req.transferNote ?? req.transfer_note ?? null,
+              status: req.status,
+              createdAt: req.createdAt ?? req.created_at,
+              updatedAt: req.updatedAt ?? req.updated_at,
+            }))
+          : [];
+        setTransferRequests(normalized);
+        const pending = normalized.filter((req) => req.status === "pending").length;
+        onPendingCountChange?.(pending);
+      } else {
+        onPendingCountChange?.(0);
       }
     } catch (error) {
       console.error("Error fetching transfer requests:", error);
@@ -52,6 +75,7 @@ export default function PharmacyTransferRequests({
         type: "error",
         text: "Có lỗi xảy ra khi tải danh sách yêu cầu",
       });
+      onPendingCountChange?.(0);
     } finally {
       setIsLoading(false);
     }
@@ -87,9 +111,9 @@ export default function PharmacyTransferRequests({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          request_id: requestId,
-          status: status,
-          pharmacy_address: pharmacyAddress,
+          requestId,
+          status,
+          pharmacyAddress,
         }),
       });
 
@@ -152,7 +176,9 @@ export default function PharmacyTransferRequests({
   };
 
   // Format địa chỉ
-  const formatAddress = (address: string) => {
+  const formatAddress = (address?: string | null) => {
+    if (!address) return "N/A";
+    if (address.length <= 10) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -161,6 +187,7 @@ export default function PharmacyTransferRequests({
     (r) => r.status === "pending"
   );
   const otherRequests = transferRequests.filter((r) => r.status !== "pending");
+  const pendingCount = pendingRequests.length;
 
   return (
     <div className="space-y-6">
@@ -168,7 +195,13 @@ export default function PharmacyTransferRequests({
         <CardHeader>
           <CardTitle className="flex items-center">
             <Truck className="w-5 h-5 mr-2" />
-            Yêu cầu chuyển lô từ nhà phân phối
+            <span>Yêu cầu chuyển lô từ nhà phân phối</span>
+            <Badge
+              variant={pendingCount > 0 ? "destructive" : "outline"}
+              className="ml-3"
+            >
+              ({pendingCount})
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -217,12 +250,12 @@ export default function PharmacyTransferRequests({
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
-                              NFT #{request.nft_id}
+                              NFT #{request.nftId}
                             </span>
                             {getStatusBadge(request.status)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {new Date(request.created_at).toLocaleString(
+                            {new Date(request.createdAt).toLocaleString(
                               "vi-VN"
                             )}
                           </div>
@@ -231,10 +264,10 @@ export default function PharmacyTransferRequests({
                         <div className="text-sm text-gray-600 mb-3">
                           <div>
                             Nhà phân phối:{" "}
-                            {formatAddress(request.distributor_address)}
+                            {formatAddress(request.distributorAddress)}
                           </div>
-                          {request.transfer_note && (
-                            <div>Ghi chú: {request.transfer_note}</div>
+                          {request.transferNote && (
+                            <div>Ghi chú: {request.transferNote}</div>
                           )}
                         </div>
 
@@ -279,12 +312,12 @@ export default function PharmacyTransferRequests({
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
-                              NFT #{request.nft_id}
+                              NFT #{request.nftId}
                             </span>
                             {getStatusBadge(request.status)}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {new Date(request.updated_at).toLocaleString(
+                            {new Date((request.updatedAt ?? request.createdAt)).toLocaleString(
                               "vi-VN"
                             )}
                           </div>
@@ -293,10 +326,10 @@ export default function PharmacyTransferRequests({
                         <div className="text-sm text-gray-600">
                           <div>
                             Nhà phân phối:{" "}
-                            {formatAddress(request.distributor_address)}
+                            {formatAddress(request.distributorAddress)}
                           </div>
-                          {request.transfer_note && (
-                            <div>Ghi chú: {request.transfer_note}</div>
+                          {request.transferNote && (
+                            <div>Ghi chú: {request.transferNote}</div>
                           )}
                         </div>
                       </div>

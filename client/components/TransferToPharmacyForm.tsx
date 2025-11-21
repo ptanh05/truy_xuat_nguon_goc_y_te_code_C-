@@ -26,13 +26,13 @@ import {
 
 interface TransferRequest {
   id: number;
-  nft_id: number;
-  distributor_address: string;
-  pharmacy_address: string | null;
-  transfer_note: string | null;
+  nftId: number;
+  distributorAddress: string;
+  pharmacyAddress: string | null;
+  transferNote: string | null;
   status: "pending" | "approved" | "rejected" | "cancelled";
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 interface TransferToPharmacyFormProps {
@@ -62,13 +62,25 @@ export default function TransferToPharmacyForm({
   // Lấy danh sách yêu cầu chuyển lô
   const fetchTransferRequests = async () => {
     try {
-      const { api, API_BASE_URL } = await import("@/lib/api");
+      const { API_BASE_URL } = await import("@/lib/api");
       const response = await fetch(
-        `${API_BASE_URL}/distributor/transfer-to-pharmacy?distributor_address=${distributorAddress}`
+        `${API_BASE_URL}/distributor/transfer-to-pharmacy?distributorAddress=${distributorAddress}`
       );
       if (response.ok) {
         const requests = await response.json();
-        setTransferRequests(requests);
+        const normalized = Array.isArray(requests)
+          ? requests.map((req: any) => ({
+              id: req.id,
+              nftId: req.nftId ?? req.nft_id,
+              distributorAddress: req.distributorAddress ?? req.distributor_address,
+              pharmacyAddress: req.pharmacyAddress ?? req.pharmacy_address,
+              transferNote: req.transferNote ?? req.transfer_note,
+              status: req.status,
+              createdAt: req.createdAt ?? req.created_at,
+              updatedAt: req.updatedAt ?? req.updated_at,
+            }))
+          : [];
+        setTransferRequests(normalized);
       }
     } catch (error) {
       console.error("Error fetching transfer requests:", error);
@@ -97,7 +109,7 @@ export default function TransferToPharmacyForm({
     setShowConfirmModal(false);
 
     try {
-      const { api, API_BASE_URL } = await import("@/lib/api");
+      const { API_BASE_URL } = await import("@/lib/api");
       const response = await fetch(`${API_BASE_URL}/distributor/transfer-to-pharmacy`, {
         method: "POST",
         headers: {
@@ -105,9 +117,9 @@ export default function TransferToPharmacyForm({
           "x-distributor-address": distributorAddress,
         },
         body: JSON.stringify({
-          nft_id: parseInt(selectedNFT),
-          pharmacy_address: pharmacyAddress,
-          transfer_note: transferNote,
+          nftId: parseInt(selectedNFT),
+          pharmacyAddress,
+          transferNote,
         }),
       });
 
@@ -153,7 +165,7 @@ export default function TransferToPharmacyForm({
           "Content-Type": "application/json",
           "x-distributor-address": distributorAddress,
         },
-        body: JSON.stringify({ request_id: requestId }),
+        body: JSON.stringify({ requestId }),
       });
 
       if (response.ok) {
@@ -310,21 +322,21 @@ export default function TransferToPharmacyForm({
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
                         <span className="font-medium">
-                          NFT #{request.nft_id}
+                          NFT #{request.nftId}
                         </span>
                         {getStatusBadge(request.status)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {new Date(request.created_at).toLocaleString("vi-VN")}
+                        {new Date(request.createdAt).toLocaleString("vi-VN")}
                       </div>
                     </div>
 
                     <div className="text-sm text-gray-600 mb-2">
                       <div>
-                        Nhà thuốc: {formatAddress(request.pharmacy_address)}
+                        Nhà thuốc: {formatAddress(request.pharmacyAddress)}
                       </div>
-                      {request.transfer_note && (
-                        <div>Ghi chú: {request.transfer_note}</div>
+                      {request.transferNote && (
+                        <div>Ghi chú: {request.transferNote}</div>
                       )}
                     </div>
 
