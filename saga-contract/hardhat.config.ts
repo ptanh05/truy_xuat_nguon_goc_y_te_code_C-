@@ -4,6 +4,18 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: __dirname + "/.env" });
 
+const { DEPLOYER_PRIVATE_KEY, PHARMADNA_RPC, PHARMADNA_CHAIN_ID } = process.env;
+
+const networks: HardhatUserConfig["networks"] = {};
+
+if (PHARMADNA_RPC) {
+  networks.pharmadna = {
+    url: PHARMADNA_RPC,
+    chainId: PHARMADNA_CHAIN_ID ? Number(PHARMADNA_CHAIN_ID) : undefined,
+    accounts: DEPLOYER_PRIVATE_KEY ? [DEPLOYER_PRIVATE_KEY] : []
+  };
+}
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -11,12 +23,7 @@ const config: HardhatUserConfig = {
       { version: "0.8.28" }
     ]
   },
-  networks: {
-    pharmadna: {
-      url: "https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io",
-      accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : []
-    }
-  }
+  networks
 };
 
 export default config;

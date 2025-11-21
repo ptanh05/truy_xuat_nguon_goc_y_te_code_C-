@@ -219,7 +219,7 @@ function ManufacturerContent() {
       return;
     }
     if (!isCorrectNetwork) {
-      toast.error("Vui lòng chuyển sang mạng PharmaDNA Chainlet");
+      toast.error("Vui lòng chuyển sang mạng PharmaDNAVN Chainlet");
       return;
     }
     if (!account) {
@@ -289,7 +289,7 @@ function ManufacturerContent() {
     }
 
     if (!isCorrectNetwork) {
-      toast.error("Vui lòng chuyển sang đúng mạng PharmaDNA Chainlet");
+      toast.error("Vui lòng chuyển sang đúng mạng PharmaDNAVN Chainlet");
       return;
     }
 
@@ -386,7 +386,7 @@ function ManufacturerContent() {
         <Alert className="mb-6 bg-yellow-50 text-yellow-800 border-yellow-200">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
-            <span>Vui lòng chuyển sang mạng PharmaDNA Chainlet</span>
+            <span>Vui lòng chuyển sang mạng PharmaDNAVN Chainlet</span>
           </AlertDescription>
         </Alert>
       )}

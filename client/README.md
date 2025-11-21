@@ -34,12 +34,13 @@ Scripts khác:
 Tạo `client/.env`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:5196/api
-NEXT_PUBLIC_PHARMA_NFT_ADDRESS=0xYourDeployedContract
-NEXT_PUBLIC_PINATA_JWT=eyJhbGciOiJI...
+NEXT_PUBLIC_PHARMA_NFT_ADDRESS=<CONTRACT_ADDRESS_SAU_DEPLOY>
+NEXT_PUBLIC_PINATA_JWT=<PINATA_JWT>
 NEXT_PUBLIC_PINATA_API_URL=https://api.pinata.cloud
 NEXT_PUBLIC_PINATA_GATEWAY=https://gateway.pinata.cloud/ipfs/
-NEXT_PUBLIC_ADMIN_USERNAME=Admin123
-NEXT_PUBLIC_ADMIN_PASSWORD=Admin123
+NEXT_PUBLIC_ADMIN_USERNAME=<ADMIN_USER_DEV>
+NEXT_PUBLIC_ADMIN_PASSWORD=<ADMIN_PASS_DEV>
+NEXT_PUBLIC_PHARMADNA_RPC=<RPC_URL_CUA_CHAIN>
 ```
 
 > Tất cả biến đều dùng prefix `NEXT_PUBLIC_` vì cần truy cập ở client. Đừng commit giá trị thật.
@@ -81,13 +82,13 @@ client/
 
 ## 7. Làm việc với MetaMask & Saga chain
 1. Mở MetaMask → Settings → Networks → Add network manually.
-2. Điền:
-   - Network name: `PharmaDNA Saga`
-   - RPC URL: `https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io`
-   - Chain ID: `2759821881746000`
-   - Currency: `SAGA`
+2. Điền thông tin chain bạn đang sử dụng (ví dụ Saga chainlet nội bộ):
+   - Network name: `PharmaDNAVN Saga`
+   - RPC URL: `<RPC_URL_CUA_CHAIN>`
+   - Chain ID: `<CHAIN_ID_DECIMAL>` (ví dụ `2763717455037000` tương ứng `0x9d1961d2ac248`)
+   - Currency: `PDNA`
 3. Import private key cho Owner/Manufacturer/Distributor/Pharmacy.
-4. Đảm bảo `NEXT_PUBLIC_PHARMA_NFT_ADDRESS` trùng contract đã deploy trên chainlet.
+4. Đảm bảo `NEXT_PUBLIC_PHARMA_NFT_ADDRESS` trùng địa chỉ contract mới nhất (tự cập nhật sau mỗi lần deploy).
 
 ## 8. Linting, formatting & best practices
 - ESLint cấu hình mặc định Next.js (`.eslintrc.json` implicit).  

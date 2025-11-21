@@ -555,7 +555,7 @@ function AdminContent() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Network:</span>
-                    <Badge variant="outline">PharmaDNA Chainlet</Badge>
+                    <Badge variant="outline">PharmaDNAVN Chainlet</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">IPFS Gateway:</span>
@@ -576,7 +576,7 @@ function AdminContent() {
                     size="sm"
                     onClick={() =>
                       window.open(
-                        `https://pharmadna-2759821881746000-1.sagaexplorer.io/address/${
+                        `https://pharmadnavn-2763717455037000-1.sagaexplorer.io/address/${
                           process.env.NEXT_PUBLIC_PHARMA_NFT_ADDRESS || "0x"
                         }`,
                         "_blank"

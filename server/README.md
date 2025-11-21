@@ -29,9 +29,9 @@ POSTGRES_CONNECTION=Host=...;Database=...;Username=...;Password=...;SSL Mode=Req
 NEON_CONNECTION=Host=...  # nếu dùng Neon auto-generated string
 
 # Blockchain
-PHARMA_NFT_ADDRESS=0xYourDeployedContract
-OWNER_PRIVATE_KEY=0xyourOwnerPrivateKey
-PHARMADNA_RPC=https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io
+PHARMA_NFT_ADDRESS=<CONTRACT_ADDRESS_SAU_DEPLOY>
+OWNER_PRIVATE_KEY=<OWNER_PRIVATE_KEY>
+PHARMADNA_RPC=<RPC_URL_CUA_CHAIN>
 
 # Pinata / IPFS
 PINATA_JWT=eyJhbGciOiJI...   # JWT hoặc API key phù hợp

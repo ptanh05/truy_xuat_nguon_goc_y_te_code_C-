@@ -44,7 +44,13 @@ PharmaDNA là nền tảng truy xuất nguồn gốc thuốc sử dụng NFT + I
 2. **Cấu hình environment**
    - `client/.env`: tham khảo mẫu ở `client/README.md`.
    - `server/PharmaDNAServer/.env`: tham khảo mẫu ở `server/README.md`.
-   - Lưu ý điền `NEXT_PUBLIC_PHARMA_NFT_ADDRESS`, `PHARMA_NFT_ADDRESS` sau khi deploy contract.
+   - `saga-contract/.env`: thêm (tự thay bằng giá trị của chain bạn dùng):
+     ```
+     PHARMADNA_RPC=<RPC_URL_CUA_CHAIN>
+     PHARMADNA_CHAIN_ID=<CHAIN_ID_DECIMAL>
+     DEPLOYER_PRIVATE_KEY=<PRIVATE_KEY_DEPLOYER>
+     ```
+   - Luôn đồng bộ `NEXT_PUBLIC_PHARMA_NFT_ADDRESS` (FE) & `PHARMA_NFT_ADDRESS` (BE) với địa chỉ contract bạn vừa deploy (không commit giá trị thật).
 
 3. **Triển khai smart contract (tuỳ chọn)**  
    ```bash
@@ -53,10 +59,8 @@ PharmaDNA là nền tảng truy xuất nguồn gốc thuốc sử dụng NFT + I
    npx hardhat run scripts/deployPharmaNFT.ts --network pharmadna
    ```
    Hoặc chạy `deploy-pharmadna.bat` (Windows) để tự động compile ↔ deploy.  
-   Chainlet Saga:  
-   - RPC: `https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io`  
-   - Chain ID: `2759821881746000`  
-   - Explorer: `https://pharmadna-2759821881746000-1.sagaexplorer.io`
+   - Chainlet Saga ví dụ: cung cấp RPC, chain ID, explorer theo tài liệu nội bộ; đừng commit chi tiết nhạy cảm.  
+   - Mỗi lần deploy xong nhớ cập nhật lại địa chỉ contract ở các file `.env`.
 
 4. **Chuẩn bị database**  
    - Tạo database trên PostgreSQL (Neon/local).  

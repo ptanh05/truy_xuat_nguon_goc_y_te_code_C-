@@ -164,12 +164,12 @@ export function useWallet() {
   }
 
   // Chain ID của PharmaDNA chainlet
-  const PHARMADNA_CHAIN_ID = 2759821881746000;
+  const PHARMADNA_CHAIN_ID = 2763717455037000;
 
   const getNetworkName = (chainId: number) => {
     switch (chainId) {
       case PHARMADNA_CHAIN_ID:
-        return "PharmaDNA Chainlet";
+        return "PharmaDNAVN Chainlet";
       default:
         return "Unknown Network";
     }
@@ -182,7 +182,7 @@ export function useWallet() {
     try {
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x9ce0b1ae7a250" }], // Chain ID của PharmaDNA chainlet (2759821881746000)
+        params: [{ chainId: "0x9d1961d2ac248" }], // Chain ID của PharmaDNAVN chainlet (2763717455037000)
       });
     } catch (error: any) {
       if (error.code === 4902) {
@@ -192,15 +192,15 @@ export function useWallet() {
             method: "wallet_addEthereumChain",
             params: [
               {
-                chainId: "0x9ce0b1ae7a250", // Chain ID của PharmaDNA chainlet (2759821881746000)
-                chainName: "PharmaDNA Chainlet",
+                chainId: "0x9d1961d2ac248", // Chain ID của PharmaDNAVN chainlet (2763717455037000)
+                chainName: "PharmaDNAVN Chainlet",
                 nativeCurrency: {
                   name: "PDNA",
                   symbol: "PDNA",
                   decimals: 18,
                 },
-                rpcUrls: ["https://pharmadna-2759821881746000-1.jsonrpc.sagarpc.io"],
-                blockExplorerUrls: ["https://pharmadna-2759821881746000-1.sagaexplorer.io"],
+                rpcUrls: ["https://pharmadnavn-2763717455037000-1.jsonrpc.sagarpc.io"],
+                blockExplorerUrls: ["https://pharmadnavn-2763717455037000-1.sagaexplorer.io"],
               },
             ],
           });
