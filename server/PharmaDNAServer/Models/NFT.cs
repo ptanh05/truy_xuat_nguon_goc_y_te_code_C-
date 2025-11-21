@@ -17,6 +17,7 @@ public class NFT
     public string? CertificateUrl { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? IpfsHash { get; set; }
+    public string? TxHash { get; set; }
     public string? ManufacturerAddress { get; set; }
     public string? DistributorAddress { get; set; }
     public string? PharmacyAddress { get; set; }

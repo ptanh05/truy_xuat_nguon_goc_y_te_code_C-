@@ -89,30 +89,98 @@ export default function LookupPage() {
     }
 
     setIsLoading(true);
+    setDrugData(null);
+    setMilestones([]);
+    
     try {
       const { API_BASE_URL } = await import("@/lib/api");
 
-      const fetchByParam = async (param: "batchNumber" | "name") => {
-        const res = await fetch(
-          `${API_BASE_URL}/manufacturer?${param}=${encodeURIComponent(searchValue)}`
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data || Object.keys(data).length === 0) return null;
-        return data;
+      const fetchByParam = async (param: "batchNumber" | "name" | "id" | "nftId") => {
+        try {
+          const url = `${API_BASE_URL}/manufacturer?${param}=${encodeURIComponent(searchValue)}`;
+          console.log(`[Lookup] Fetching by ${param}:`, url);
+          
+          const res = await fetch(url);
+          
+          if (!res.ok) {
+            // If 404, return null (not found)
+            if (res.status === 404) {
+              console.log(`[Lookup] Not found (404) for ${param}`);
+              return null;
+            }
+            // For other errors, log and return null
+            console.warn(`[Lookup] API error for ${param}:`, res.status, res.statusText);
+            return null;
+          }
+          
+          const data = await res.json();
+          console.log(`[Lookup] Response for ${param}:`, data);
+          
+          // Check if data is valid and not empty
+          if (!data) {
+            console.log(`[Lookup] No data returned for ${param}`);
+            return null;
+          }
+          
+          // Check if it's an empty object (backend returns {} when not found)
+          if (typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) {
+            console.log(`[Lookup] Empty object returned for ${param}`);
+            return null;
+          }
+          
+          // Check if it's an array with empty items
+          if (Array.isArray(data) && data.length === 0) {
+            console.log(`[Lookup] Empty array returned for ${param}`);
+            return null;
+          }
+          
+          // Check if it has at least one identifying field
+          const hasId = data.id || data.Id;
+          const hasName = data.name || data.Name;
+          const hasBatchNumber = data.batchNumber || data.BatchNumber || data.batch_number;
+          
+          if (!hasId && !hasName && !hasBatchNumber) {
+            console.log(`[Lookup] Data returned but no identifying fields for ${param}:`, data);
+            return null;
+          }
+          
+          console.log(`[Lookup] Valid data found for ${param}`);
+          return data;
+        } catch (err) {
+          console.error(`[Lookup] Error fetching by ${param}:`, err);
+          return null;
+        }
       };
 
-      let nftData = await fetchByParam("batchNumber");
+      // Try to fetch by different parameters in order
+      let nftData = null;
+      
+      // First, try by ID (if it's a number)
+      if (/^\d+$/.test(searchValue)) {
+        nftData = await fetchByParam("id");
+        if (!nftData) {
+          nftData = await fetchByParam("nftId");
+        }
+      }
+      
+      // Then try by batchNumber
+      if (!nftData) {
+        nftData = await fetchByParam("batchNumber");
+      }
+      
+      // Finally try by name
       if (!nftData) {
         nftData = await fetchByParam("name");
       }
 
+      // Check if we have valid data
       const hasValidData =
         nftData &&
         (nftData.batchNumber ||
           nftData.batch_number ||
           nftData.name ||
-          nftData.id);
+          nftData.id ||
+          (typeof nftData === 'object' && Object.keys(nftData).length > 0));
 
       if (!hasValidData) {
         setDrugData(null);
@@ -121,10 +189,19 @@ export default function LookupPage() {
         return;
       }
 
+      // Normalize status - if not provided, default to "authentic" if we have valid data
+      // Handle both camelCase and PascalCase from backend
+      const rawStatus = nftData.status ?? nftData.Status ?? nftData.metadata?.status ?? "";
+      let normalizedStatus = rawStatus;
+      if (!normalizedStatus && hasValidData) {
+        normalizedStatus = "authentic";
+      }
+      normalizedStatus = normalizedStatus.toLowerCase().trim();
+
       const normalizedNft = {
-        id: nftData.id,
-        name: nftData.name ?? nftData.metadata?.name ?? "",
-        batchNumber: nftData.batchNumber ?? nftData.batch_number ?? "",
+        id: nftData.id ?? nftData.Id ?? 0,
+        name: nftData.name ?? nftData.Name ?? nftData.metadata?.name ?? "",
+        batchNumber: nftData.batchNumber ?? nftData.BatchNumber ?? nftData.batch_number ?? "",
         manufactureDate:
           nftData.manufactureDate ??
           nftData.manufacture_date ??
@@ -138,7 +215,7 @@ export default function LookupPage() {
         description:
           nftData.description ?? nftData.metadata?.description ?? "",
         formulation: nftData.formulation ?? nftData.metadata?.formulation ?? "",
-        status: nftData.status ?? "",
+        status: normalizedStatus,
         manufacturerAddress:
           nftData.manufacturerAddress ??
           nftData.manufacturer_address ??
@@ -161,36 +238,48 @@ export default function LookupPage() {
         gtin: nftData.gtin ?? nftData.metadata?.gtin ?? "",
       };
 
+      console.log("[Lookup] Normalized NFT data:", normalizedNft);
       setDrugData(normalizedNft);
 
-      // Lấy lịch sử vận chuyển
-      const msRes = await fetch(
-        `${API_BASE_URL}/manufacturer/milestone?nftId=${normalizedNft.id}`
-      );
-      const msData = await msRes.json();
-      const normalizedMilestones = Array.isArray(msData)
-        ? msData
-            .map((m: any) => ({
-              id: m.id,
-              type: m.type,
-              description: m.description,
-              location: m.location,
-              timestamp:
-                m.timestamp ??
-                m.timeStamp ??
-                m.createdAt ??
-                m.created_at ??
-                null,
-              actorAddress: (m.actorAddress ?? m.actor_address ?? "").toLowerCase(),
-            }))
-            .filter((m: any) => !!m.timestamp)
-            .sort(
-              (a: any, b: any) =>
-                new Date(a.timestamp).getTime() -
-                new Date(b.timestamp).getTime()
-            )
-        : [];
-      setMilestones(normalizedMilestones);
+      // Lấy lịch sử vận chuyển với error handling
+      try {
+        const msRes = await fetch(
+          `${API_BASE_URL}/manufacturer/milestone?nftId=${normalizedNft.id}`
+        );
+        if (msRes.ok) {
+          const msData = await msRes.json();
+          const normalizedMilestones = Array.isArray(msData)
+            ? msData
+                .map((m: any) => ({
+                  id: m.id,
+                  type: m.type,
+                  description: m.description,
+                  location: m.location,
+                  timestamp:
+                    m.timestamp ??
+                    m.timeStamp ??
+                    m.createdAt ??
+                    m.created_at ??
+                    null,
+                  actorAddress: (m.actorAddress ?? m.actor_address ?? "").toLowerCase(),
+                }))
+                .filter((m: any) => !!m.timestamp)
+                .sort(
+                  (a: any, b: any) =>
+                    new Date(a.timestamp).getTime() -
+                    new Date(b.timestamp).getTime()
+                )
+            : [];
+          setMilestones(normalizedMilestones);
+        } else {
+          // If milestone fetch fails, just set empty array
+          setMilestones([]);
+        }
+      } catch (msError) {
+        // If milestone fetch fails, just set empty array and continue
+        console.warn("Error fetching milestones:", msError);
+        setMilestones([]);
+      }
     } catch (error) {
       toast.error("Có lỗi xảy ra khi tra cứu");
       setDrugData(null);

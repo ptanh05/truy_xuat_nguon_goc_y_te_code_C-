@@ -80,6 +80,7 @@ function ManufacturerContent() {
     "idle" | "success" | "error"
   >("idle");
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [mintTxHash, setMintTxHash] = useState<string | null>(null);
   const [userList, setUserList] = useState<any[]>([]);
   const [isManufacturer, setIsManufacturer] = useState<boolean>(true);
   const [contractRole, setContractRole] = useState<number | null>(null);
@@ -323,8 +324,13 @@ function ManufacturerContent() {
       
       loadingToastId = toast.loading("Đang mint NFT trên blockchain...");
       const tx = await contract.mintProductNFT(uploadResult.ipfsHash);
-      await tx.wait();
+      const txHash = tx.hash;
+      setMintTxHash(txHash);
       toast.dismiss(loadingToastId);
+      toast.loading(`Transaction đã được gửi! Hash: ${txHash.slice(0, 10)}...`, { id: "tx-pending" });
+      
+      await tx.wait();
+      toast.dismiss("tx-pending");
       setUploadStatus("success");
       toast.success("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
 
@@ -372,6 +378,7 @@ function ManufacturerContent() {
     setCertificate(null);
     setUploadStatus("idle");
     setUploadResult(null);
+    setMintTxHash(null);
   };
 
   const contractAddress = process.env.NEXT_PUBLIC_PHARMA_NFT_ADDRESS;
@@ -687,6 +694,27 @@ function ManufacturerContent() {
                       <span className="font-medium">Manufacturer:</span>{" "}
                       {account?.slice(0, 6)}...{account?.slice(-4)}
                     </p>
+                  </div>
+                )}
+
+                {mintTxHash && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Transaction Hash (Mint NFT):</h4>
+                    <p className="text-sm font-mono break-all">
+                      {mintTxHash}
+                    </p>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto mt-2"
+                      onClick={() => {
+                        const explorerUrl = process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL || "https://pharmadnavn-2763717455037000-1.sagaexplorer.io";
+                        const explorerBase = explorerUrl.endsWith("/") ? explorerUrl.slice(0, -1) : explorerUrl;
+                        window.open(`${explorerBase}/tx/${mintTxHash}`, "_blank");
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      Xem trên Block Explorer
+                    </Button>
                   </div>
                 )}
 

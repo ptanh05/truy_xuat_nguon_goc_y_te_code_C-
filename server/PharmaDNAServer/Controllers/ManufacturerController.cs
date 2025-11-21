@@ -20,10 +20,26 @@ public class ManufacturerController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetNFTs([FromQuery] string? batchNumber, [FromQuery] string? name)
+    public async Task<IActionResult> GetNFTs([FromQuery] string? batchNumber, [FromQuery] string? name, [FromQuery] int? id, [FromQuery] int? nftId)
     {
         IQueryable<NFT> query = _context.NFTs;
 
+        // Priority 1: Search by ID or NFT ID
+        if (id.HasValue && id.Value > 0)
+        {
+            var nft = await query.FirstOrDefaultAsync(n => n.Id == id.Value);
+            if (nft == null) return Ok(new { });
+            return Ok(nft);
+        }
+
+        if (nftId.HasValue && nftId.Value > 0)
+        {
+            var nft = await query.FirstOrDefaultAsync(n => n.Id == nftId.Value);
+            if (nft == null) return Ok(new { });
+            return Ok(nft);
+        }
+
+        // Priority 2: Search by batchNumber
         if (!string.IsNullOrEmpty(batchNumber))
         {
             query = query.Where(n => n.BatchNumber == batchNumber);
@@ -32,6 +48,7 @@ public class ManufacturerController : ControllerBase
             return Ok(nft);
         }
 
+        // Priority 3: Search by name
         if (!string.IsNullOrEmpty(name))
         {
             query = query.Where(n => n.Name.Contains(name));
@@ -40,6 +57,7 @@ public class ManufacturerController : ControllerBase
             return Ok(nft);
         }
 
+        // If no parameters, return all NFTs
         var nfts = await query.ToListAsync();
         return Ok(nfts);
     }

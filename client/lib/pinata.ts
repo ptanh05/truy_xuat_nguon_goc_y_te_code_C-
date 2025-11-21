@@ -74,23 +74,45 @@ export async function uploadToPinata(
 
   const pinataApiUrl = process.env.NEXT_PUBLIC_PINATA_API_URL || "https://api.pinata.cloud";
   
-  const response = await fetch(
-    `${pinataApiUrl}/pinning/pinFileToIPFS`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${pinataJwt}`,
-      },
-      body: formData,
+  try {
+    const response = await fetch(
+      `${pinataApiUrl}/pinning/pinFileToIPFS`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${pinataJwt}`,
+        },
+        body: formData,
+      }
+    );
+
+    const responseText = await response.text();
+    
+    if (!response.ok) {
+      let errorMessage = `Pinata upload failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error || errorData.message || errorMessage;
+        if (errorData.details) {
+          errorMessage += ` - ${errorData.details}`;
+        }
+      } catch {
+        errorMessage += ` - ${responseText.substring(0, 200)}`;
+      }
+      throw new Error(errorMessage);
     }
-  );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Pinata upload failed: ${errorText}`);
+    try {
+      return JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(`Invalid JSON response from Pinata: ${responseText.substring(0, 200)}`);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(`Unexpected error during Pinata upload: ${String(error)}`);
   }
-
-  return await response.json();
 }
 
 /**

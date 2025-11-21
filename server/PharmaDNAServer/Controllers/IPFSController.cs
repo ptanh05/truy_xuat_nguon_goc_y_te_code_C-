@@ -31,7 +31,18 @@ public class IPFSController : ControllerBase
             return BadRequest(new { error = "Thiếu hash IPFS" });
         }
 
-        var cleaned = hash.Trim()
+        // Decode URL encoding first
+        string cleaned;
+        try
+        {
+            cleaned = Uri.UnescapeDataString(hash);
+        }
+        catch
+        {
+            // If decoding fails, use original hash
+            cleaned = hash;
+        }
+        cleaned = cleaned.Trim()
             .Replace("\\", "")
             .Replace("\"", "")
             .Replace("'", "");
@@ -48,6 +59,7 @@ public class IPFSController : ControllerBase
         }
         else
         {
+            // Remove ipfs:// prefix
             cleaned = cleaned.Replace("ipfs://", "", StringComparison.OrdinalIgnoreCase)
                 .Trim('/');
 
@@ -60,11 +72,30 @@ public class IPFSController : ControllerBase
                 cleaned = cleaned.Substring("ipfs/".Length);
             }
 
-            if (cleaned.Contains("mypinata.cloud/"))
+            // Handle mypinata.cloud URLs - extract the hash part
+            if (cleaned.Contains("mypinata.cloud"))
             {
-                var parts = cleaned.Split(new[] { "mypinata.cloud/" }, StringSplitOptions.None);
-                cleaned = parts[^1];
+                // Try to extract hash after mypinata.cloud/
+                var mypinataIndex = cleaned.IndexOf("mypinata.cloud", StringComparison.OrdinalIgnoreCase);
+                if (mypinataIndex >= 0)
+                {
+                    var afterMypinata = cleaned.Substring(mypinataIndex + "mypinata.cloud".Length);
+                    afterMypinata = afterMypinata.TrimStart('/');
+                    // Extract hash (everything after the last /)
+                    var lastSlash = afterMypinata.LastIndexOf('/');
+                    if (lastSlash >= 0)
+                    {
+                        cleaned = afterMypinata.Substring(lastSlash + 1);
+                    }
+                    else
+                    {
+                        cleaned = afterMypinata;
+                    }
+                }
             }
+
+            // Clean up any remaining URL parts
+            cleaned = cleaned.Split('/').Last().Split('?').First().Split('#').First();
 
             if (string.IsNullOrWhiteSpace(cleaned))
             {
@@ -84,6 +115,14 @@ public class IPFSController : ControllerBase
             targetUrl = $"{gateway}{cleaned}";
         }
 
+        // Validate that targetUrl is a valid absolute URI
+        if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var uri))
+        {
+            _logger.LogError("Invalid target URL: {TargetUrl}", targetUrl);
+            return BadRequest(new { error = "URL không hợp lệ", details = targetUrl });
+        }
+        targetUrl = uri.ToString();
+
         var gatewayToken = _configuration["PINATA_GATEWAY_TOKEN"];
         if (!string.IsNullOrWhiteSpace(gatewayToken))
         {
@@ -94,7 +133,13 @@ public class IPFSController : ControllerBase
         try
         {
             using var client = new HttpClient();
-            var response = await client.GetAsync(targetUrl);
+            // Ensure we're using an absolute URI
+            if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var finalUri))
+            {
+                _logger.LogError("Invalid final URL: {TargetUrl}", targetUrl);
+                return BadRequest(new { error = "URL không hợp lệ", details = targetUrl });
+            }
+            var response = await client.GetAsync(finalUri);
             if (!response.IsSuccessStatusCode)
             {
                 var details = await response.Content.ReadAsStringAsync();
@@ -123,25 +168,31 @@ public class IPFSController : ControllerBase
         try
         {
             var form = await Request.ReadFormAsync();
-            var drugName = form["drugName"].ToString();
-            var batchNumber = form["batchNumber"].ToString();
-            var manufacturingDate = form["manufacturingDate"].ToString();
-            var expiryDate = form["expiryDate"].ToString();
-            var description = form["description"].ToString();
-            var gtin = form["gtin"].ToString();
-            var formulation = form["formulation"].ToString();
-            var manufacturerAddress = form["manufacturerAddress"].ToString();
+            var drugName = form["drugName"].ToString() ?? string.Empty;
+            var batchNumber = form["batchNumber"].ToString() ?? string.Empty;
+            var manufacturingDate = form["manufacturingDate"].ToString() ?? string.Empty;
+            var expiryDate = form["expiryDate"].ToString() ?? string.Empty;
+            var description = form["description"].ToString() ?? string.Empty;
+            var gtin = form["gtin"].ToString() ?? string.Empty;
+            var formulation = form["formulation"].ToString() ?? string.Empty;
+            var manufacturerAddress = form["manufacturerAddress"].ToString() ?? string.Empty;
             var drugImage = form.Files["drugImage"];
             var certificate = form.Files["certificate"];
+
+            _logger.LogInformation("Received upload request - Drug: {DrugName}, Batch: {BatchNumber}, Manufacturer: {Address}", 
+                drugName, batchNumber, manufacturerAddress);
 
             if (string.IsNullOrEmpty(drugName) || string.IsNullOrEmpty(batchNumber) 
                 || string.IsNullOrEmpty(manufacturingDate) || string.IsNullOrEmpty(expiryDate))
             {
-                return BadRequest(new { error = "Thiếu thông tin bắt buộc" });
+                _logger.LogWarning("Missing required fields - DrugName: {DrugName}, BatchNumber: {BatchNumber}, ManufacturingDate: {ManufacturingDate}, ExpiryDate: {ExpiryDate}", 
+                    drugName, batchNumber, manufacturingDate, expiryDate);
+                return BadRequest(new { error = "Thiếu thông tin bắt buộc", details = new { drugName, batchNumber, manufacturingDate, expiryDate } });
             }
 
             if (string.IsNullOrEmpty(manufacturerAddress))
             {
+                _logger.LogWarning("Missing manufacturer address");
                 return BadRequest(new { error = "Thiếu địa chỉ ví manufacturer" });
             }
 
@@ -149,10 +200,11 @@ public class IPFSController : ControllerBase
         var pinataApiUrl = _configuration["PINATA_API_URL"] ?? "https://api.pinata.cloud";
         if (string.IsNullOrEmpty(pinataJwt))
         {
+            _logger.LogError("PINATA_JWT chưa được cấu hình trong .env");
             return StatusCode(500, new { error = "PINATA_JWT chưa được cấu hình trong .env" });
         }
 
-            var uploadedFiles = new List<string>();
+        var uploadedFiles = new List<string>();
 
             // Upload drug image if provided
             if (drugImage != null && drugImage.Length > 0)
@@ -161,31 +213,70 @@ public class IPFSController : ControllerBase
                 {
                     using var imageStream = drugImage.OpenReadStream();
                     using var imageContent = new StreamContent(imageStream);
+                    imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(drugImage.ContentType ?? "application/octet-stream");
 
                     using var formData = new MultipartFormDataContent();
                     formData.Add(imageContent, "file", drugImage.FileName);
 
                     using var client = new HttpClient();
+                    client.DefaultRequestHeaders.Clear();
                     client.DefaultRequestHeaders.Add("Authorization", $"Bearer {pinataJwt}");
+                    client.Timeout = TimeSpan.FromMinutes(5);
 
+                    _logger.LogInformation("Uploading drug image to Pinata: {FileName}, Size: {Size} bytes", drugImage.FileName, drugImage.Length);
                     var response = await client.PostAsync($"{pinataApiUrl}/pinning/pinFileToIPFS", formData);
+                    
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    
                     if (response.IsSuccessStatusCode)
                     {
-                        var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-                        if (result != null && result.ContainsKey("IpfsHash"))
+                        Dictionary<string, object>? result = null;
+                        try
                         {
-                            uploadedFiles.Add($"ipfs/{result["IpfsHash"]}");
+                            result = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseText, new System.Text.Json.JsonSerializerOptions 
+                            { 
+                                PropertyNameCaseInsensitive = true 
+                            });
+                        }
+                        catch (System.Text.Json.JsonException jsonEx)
+                        {
+                            _logger.LogError(jsonEx, "Failed to parse Pinata response as JSON. Response: {Response}", responseText);
+                            throw new Exception($"Không thể parse response từ Pinata: {jsonEx.Message}");
+                        }
+                        
+                        // Try both case variations
+                        string? imageIpfsHash = null;
+                        if (result != null)
+                        {
+                            if (result.TryGetValue("IpfsHash", out var hash1) && hash1 != null)
+                                imageIpfsHash = hash1.ToString();
+                            else if (result.TryGetValue("ipfsHash", out var hash2) && hash2 != null)
+                                imageIpfsHash = hash2.ToString();
+                            else if (result.TryGetValue("IPFSHash", out var hash3) && hash3 != null)
+                                imageIpfsHash = hash3.ToString();
+                        }
+                        
+                        if (!string.IsNullOrEmpty(imageIpfsHash))
+                        {
+                            uploadedFiles.Add($"ipfs/{imageIpfsHash}");
+                            _logger.LogInformation("Successfully uploaded drug image to Pinata. Hash: {Hash}", imageIpfsHash);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Pinata response missing IPFS hash. Response: {Response}", responseText);
+                            throw new Exception($"Pinata response không chứa IPFS hash. Response: {responseText.Substring(0, Math.Min(200, responseText.Length))}");
                         }
                     }
                     else
                     {
-                        var errorText = await response.Content.ReadAsStringAsync();
-                        Console.WriteLine($"Error uploading drug image to Pinata: {errorText}");
+                        _logger.LogError("Pinata API error uploading drug image. Status: {Status}, Response: {Response}", response.StatusCode, responseText);
+                        throw new Exception($"Lỗi khi upload hình ảnh lên Pinata: {response.StatusCode} - {responseText.Substring(0, Math.Min(500, responseText.Length))}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error uploading drug image: {ex.Message}");
+                    _logger.LogError(ex, "Exception uploading drug image to Pinata");
+                    return StatusCode(500, new { error = "Lỗi khi upload hình ảnh lên Pinata", message = ex.Message });
                 }
             }
 
@@ -196,31 +287,70 @@ public class IPFSController : ControllerBase
                 {
                     using var certStream = certificate.OpenReadStream();
                     using var certContent = new StreamContent(certStream);
+                    certContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(certificate.ContentType ?? "application/octet-stream");
 
                     using var formData = new MultipartFormDataContent();
                     formData.Add(certContent, "file", certificate.FileName);
 
                     using var client = new HttpClient();
+                    client.DefaultRequestHeaders.Clear();
                     client.DefaultRequestHeaders.Add("Authorization", $"Bearer {pinataJwt}");
+                    client.Timeout = TimeSpan.FromMinutes(5);
 
+                    _logger.LogInformation("Uploading certificate to Pinata: {FileName}, Size: {Size} bytes", certificate.FileName, certificate.Length);
                     var response = await client.PostAsync($"{pinataApiUrl}/pinning/pinFileToIPFS", formData);
+                    
+                    var responseText = await response.Content.ReadAsStringAsync();
+                    
                     if (response.IsSuccessStatusCode)
                     {
-                        var result = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-                        if (result != null && result.ContainsKey("IpfsHash"))
+                        Dictionary<string, object>? result = null;
+                        try
                         {
-                            uploadedFiles.Add($"ipfs/{result["IpfsHash"]}");
+                            result = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseText, new System.Text.Json.JsonSerializerOptions 
+                            { 
+                                PropertyNameCaseInsensitive = true 
+                            });
+                        }
+                        catch (System.Text.Json.JsonException jsonEx)
+                        {
+                            _logger.LogError(jsonEx, "Failed to parse Pinata certificate response as JSON. Response: {Response}", responseText);
+                            throw new Exception($"Không thể parse response từ Pinata: {jsonEx.Message}");
+                        }
+                        
+                        // Try both case variations
+                        string? certIpfsHash = null;
+                        if (result != null)
+                        {
+                            if (result.TryGetValue("IpfsHash", out var hash1) && hash1 != null)
+                                certIpfsHash = hash1.ToString();
+                            else if (result.TryGetValue("ipfsHash", out var hash2) && hash2 != null)
+                                certIpfsHash = hash2.ToString();
+                            else if (result.TryGetValue("IPFSHash", out var hash3) && hash3 != null)
+                                certIpfsHash = hash3.ToString();
+                        }
+                        
+                        if (!string.IsNullOrEmpty(certIpfsHash))
+                        {
+                            uploadedFiles.Add($"ipfs/{certIpfsHash}");
+                            _logger.LogInformation("Successfully uploaded certificate to Pinata. Hash: {Hash}", certIpfsHash);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Pinata response missing IPFS hash. Response: {Response}", responseText);
+                            throw new Exception($"Pinata response không chứa IPFS hash. Response: {responseText.Substring(0, Math.Min(200, responseText.Length))}");
                         }
                     }
                     else
                     {
-                        var errorText = await response.Content.ReadAsStringAsync();
-                        Console.WriteLine($"Error uploading certificate to Pinata: {errorText}");
+                        _logger.LogError("Pinata API error uploading certificate. Status: {Status}, Response: {Response}", response.StatusCode, responseText);
+                        throw new Exception($"Lỗi khi upload chứng chỉ lên Pinata: {response.StatusCode} - {responseText.Substring(0, Math.Min(500, responseText.Length))}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error uploading certificate: {ex.Message}");
+                    _logger.LogError(ex, "Exception uploading certificate to Pinata");
+                    return StatusCode(500, new { error = "Lỗi khi upload chứng chỉ lên Pinata", message = ex.Message });
                 }
             }
 
@@ -242,7 +372,9 @@ public class IPFSController : ControllerBase
 
             // Upload metadata to IPFS
             using var metadataClient = new HttpClient();
+            metadataClient.DefaultRequestHeaders.Clear();
             metadataClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {pinataJwt}");
+            metadataClient.Timeout = TimeSpan.FromMinutes(5);
 
             var metadataJson = System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -256,27 +388,59 @@ public class IPFSController : ControllerBase
                         batchNumber,
                         type = "drug-metadata"
                     }
+                },
+                pinataOptions = new
+                {
+                    cidVersion = 1
                 }
             });
 
             var metadataContent = new StringContent(metadataJson, System.Text.Encoding.UTF8, "application/json");
             
+            _logger.LogInformation("Uploading metadata to Pinata for drug: {DrugName}, Batch: {BatchNumber}", drugName, batchNumber);
             var metadataResponse = await metadataClient.PostAsync($"{pinataApiUrl}/pinning/pinJSONToIPFS", metadataContent);
+            
+            var metadataResponseText = await metadataResponse.Content.ReadAsStringAsync();
             
             if (!metadataResponse.IsSuccessStatusCode)
             {
-                var errorText = await metadataResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error uploading metadata: {errorText}");
-                return StatusCode(500, new { error = "Lỗi khi upload metadata lên IPFS", details = errorText });
+                _logger.LogError("Pinata API error uploading metadata. Status: {Status}, Response: {Response}", metadataResponse.StatusCode, metadataResponseText);
+                return StatusCode(500, new { error = "Lỗi khi upload metadata lên IPFS", details = metadataResponseText.Substring(0, Math.Min(500, metadataResponseText.Length)) });
             }
 
-            var metadataResult = await metadataResponse.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-            var ipfsHash = metadataResult?["IpfsHash"]?.ToString();
+            Dictionary<string, object>? metadataResult = null;
+            try
+            {
+                metadataResult = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(metadataResponseText, new System.Text.Json.JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true 
+                });
+            }
+            catch (System.Text.Json.JsonException jsonEx)
+            {
+                _logger.LogError(jsonEx, "Failed to parse Pinata metadata response as JSON. Response: {Response}", metadataResponseText);
+                return StatusCode(500, new { error = "Không thể parse response từ Pinata", details = jsonEx.Message });
+            }
+            
+            // Try both case variations
+            string? ipfsHash = null;
+            if (metadataResult != null)
+            {
+                if (metadataResult.TryGetValue("IpfsHash", out var hash1) && hash1 != null)
+                    ipfsHash = hash1.ToString();
+                else if (metadataResult.TryGetValue("ipfsHash", out var hash2) && hash2 != null)
+                    ipfsHash = hash2.ToString();
+                else if (metadataResult.TryGetValue("IPFSHash", out var hash3) && hash3 != null)
+                    ipfsHash = hash3.ToString();
+            }
 
             if (string.IsNullOrEmpty(ipfsHash))
             {
-                return StatusCode(500, new { error = "Không thể lấy IPFS hash từ response" });
+                _logger.LogError("Pinata metadata response missing IPFS hash. Response: {Response}", metadataResponseText);
+                return StatusCode(500, new { error = "Không thể lấy IPFS hash từ response", details = metadataResponseText.Substring(0, Math.Min(500, metadataResponseText.Length)) });
             }
+            
+            _logger.LogInformation("Successfully uploaded metadata to Pinata. Hash: {Hash}", ipfsHash);
 
             // Lấy gateway URL, mặc định là Pinata public gateway
             var pinataGateway = _configuration["PINATA_GATEWAY"];
@@ -381,12 +545,23 @@ public class IPFSController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in UploadToIPFS: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            _logger.LogError(ex, "Error in UploadToIPFS: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
+            var errorResponse = new { 
+                error = "Lỗi khi upload lên IPFS", 
+                message = ex.Message
+            };
+            
+            // Only include stack trace in development
+            #if DEBUG
             return StatusCode(500, new { 
                 error = "Lỗi khi upload lên IPFS", 
-                message = ex.Message 
+                message = ex.Message,
+                stackTrace = ex.StackTrace,
+                innerException = ex.InnerException?.Message
             });
+            #else
+            return StatusCode(500, errorResponse);
+            #endif
         }
     }
 }
