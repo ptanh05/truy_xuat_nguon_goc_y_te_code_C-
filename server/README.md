@@ -32,6 +32,7 @@ NEON_CONNECTION=Host=...  # nếu dùng Neon auto-generated string
 PHARMA_NFT_ADDRESS=<CONTRACT_ADDRESS_SAU_DEPLOY>
 OWNER_PRIVATE_KEY=<OWNER_PRIVATE_KEY>
 PHARMADNA_RPC=<RPC_URL_CUA_CHAIN>
+PHARMADNA_CHAIN_ID=<CHAIN_ID_DECIMAL> # optional nhưng nên cấu hình để ký giao dịch chính xác
 
 # Pinata / IPFS
 PINATA_JWT=eyJhbGciOiJI...   # JWT hoặc API key phù hợp

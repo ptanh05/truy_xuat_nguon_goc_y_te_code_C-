@@ -96,6 +96,10 @@ builder.Services.Configure<PharmaDNAServer.Models.ContractOptions>(options =>
     options.PharmaNftAddress = builder.Configuration["PHARMA_NFT_ADDRESS"] ?? string.Empty;
     options.OwnerPrivateKey = builder.Configuration["OWNER_PRIVATE_KEY"] ?? string.Empty;
     options.RpcUrl = builder.Configuration["PHARMADNA_RPC"] ?? string.Empty;
+    if (long.TryParse(builder.Configuration["PHARMADNA_CHAIN_ID"], out var chainId))
+    {
+        options.ChainId = chainId;
+    }
 });
 
 // Register services

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PharmaDNAServer.Data;
 using PharmaDNAServer.Models;
@@ -22,15 +23,21 @@ public class RoleService : IRoleService
     private readonly ApplicationDbContext _context;
     private readonly ContractOptions _contractOptions;
     private readonly IConfiguration _configuration;
+    private readonly BlockchainService _blockchainService;
+    private readonly ILogger<RoleService> _logger;
 
     public RoleService(
         ApplicationDbContext context,
         IOptions<ContractOptions> contractOptions,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        BlockchainService blockchainService,
+        ILogger<RoleService> logger)
     {
         _context = context;
         _contractOptions = contractOptions.Value;
         _configuration = configuration;
+        _blockchainService = blockchainService;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<UserSummary>> GetUsersAsync()
@@ -66,6 +73,8 @@ public class RoleService : IRoleService
         var normalizedAddress = address.ToLower();
         var now = DateTime.UtcNow;
 
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Address == normalizedAddress);
         if (existingUser != null)
         {
@@ -85,14 +94,22 @@ public class RoleService : IRoleService
 
         await _context.SaveChangesAsync();
 
-        var onChainConfigured = !string.IsNullOrWhiteSpace(_contractOptions.PharmaNftAddress) &&
-            !string.IsNullOrWhiteSpace(_contractOptions.OwnerPrivateKey);
+        var onChainResult = await _blockchainService.AssignRoleAsync(normalizedAddress, role);
+        if (!onChainResult.Success)
+        {
+            await transaction.RollbackAsync();
+            var errorMessage = onChainResult.Error ?? "Không rõ lỗi";
+            _logger.LogWarning("Đồng bộ role {Role} cho địa chỉ {Address} thất bại: {Error}", role, normalizedAddress, errorMessage);
 
-        var message = onChainConfigured
-            ? $"✅ Đã cấp quyền {role} cho địa chỉ {normalizedAddress}."
-            : $"✅ Đã cấp quyền {role} cho địa chỉ {normalizedAddress}. ⚠️ Chưa cấu hình PHARMA_NFT_ADDRESS/OWNER_PRIVATE_KEY để đồng bộ on-chain.";
+            var failureMessage = $"⚠️ Không thể đồng bộ quyền {role} cho địa chỉ {normalizedAddress} lên on-chain: {errorMessage}";
+            return new RoleAssignmentResult(false, failureMessage, _blockchainService.IsConfigured(), onChainResult.TransactionHash, onChainResult.Error);
+        }
 
-        return new RoleAssignmentResult(true, message, onChainConfigured);
+        await transaction.CommitAsync();
+        _logger.LogInformation("Đã đồng bộ role {Role} cho địa chỉ {Address} lên on-chain. TxHash: {TxHash}", role, normalizedAddress, onChainResult.TransactionHash);
+
+        var successMessage = $"✅ Đã cấp quyền {role} cho địa chỉ {normalizedAddress} và đồng bộ on-chain thành công.";
+        return new RoleAssignmentResult(true, successMessage, true, onChainResult.TransactionHash, null);
     }
 
     public async Task DeleteUserAsync(string address)
@@ -127,7 +144,7 @@ public class RoleService : IRoleService
         // Nếu đã có quyền rồi thì không làm gì
         if (existingUser != null && existingUser.Role == "MANUFACTURER")
         {
-            return new RoleAssignmentResult(true, $"Địa chỉ {normalizedAddress} đã có quyền MANUFACTURER", false);
+            return new RoleAssignmentResult(true, $"Địa chỉ {normalizedAddress} đã có quyền MANUFACTURER", _blockchainService.IsConfigured(), null, null);
         }
 
         // Tự động cấp quyền MANUFACTURER
@@ -145,6 +162,6 @@ public record ConfigStatus(
     bool OwnerPrivateKeyConfigured,
     bool RpcConfigured);
 
-public record RoleAssignmentResult(bool Success, string Message, bool OnChainConfigured);
+public record RoleAssignmentResult(bool Success, string Message, bool OnChainConfigured, string? TransactionHash, string? OnChainError);
 
 
