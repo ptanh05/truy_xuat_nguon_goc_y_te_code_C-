@@ -8,9 +8,11 @@ public class NFT
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? BatchNumber { get; set; }
+    public string? Gtin { get; set; }
     public DateTime? ManufactureDate { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public string? Description { get; set; }
+    public string? Formulation { get; set; }
     public string? ImageUrl { get; set; }
     public string? CertificateUrl { get; set; }
     public string Status { get; set; } = string.Empty;

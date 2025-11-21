@@ -3,7 +3,7 @@
  */
 
 export interface PinataResponse {
-  IpfsHash: string;
+  ipfsHash: string;
   PinSize: number;
   Timestamp: string;
 }

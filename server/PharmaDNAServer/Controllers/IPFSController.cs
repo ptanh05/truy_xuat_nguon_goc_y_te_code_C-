@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PharmaDNAServer.Data;
 using PharmaDNAServer.Models;
+using Npgsql;
 
 namespace PharmaDNAServer.Controllers;
 
@@ -11,11 +13,13 @@ public class IPFSController : ControllerBase
 {
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<IPFSController> _logger;
 
-    public IPFSController(IConfiguration configuration, ApplicationDbContext context)
+    public IPFSController(IConfiguration configuration, ApplicationDbContext context, ILogger<IPFSController> logger)
     {
         _configuration = configuration;
         _context = context;
+        _logger = logger;
     }
 
     [HttpPost("upload-ipfs")]
@@ -29,6 +33,8 @@ public class IPFSController : ControllerBase
             var manufacturingDate = form["manufacturingDate"].ToString();
             var expiryDate = form["expiryDate"].ToString();
             var description = form["description"].ToString();
+            var gtin = form["gtin"].ToString();
+            var formulation = form["formulation"].ToString();
             var manufacturerAddress = form["manufacturerAddress"].ToString();
             var drugImage = form.Files["drugImage"];
             var certificate = form.Files["certificate"];
@@ -128,9 +134,11 @@ public class IPFSController : ControllerBase
             {
                 drugName,
                 batchNumber,
+                gtin,
                 manufacturingDate,
                 expiryDate,
                 description,
+                formulation,
                 manufacturerAddress,
                 timestamp = DateTime.UtcNow.ToString("O"),
                 files = uploadedFiles,
@@ -205,13 +213,26 @@ public class IPFSController : ControllerBase
 
             // Lưu NFT vào database
             var now = DateTime.UtcNow;
+            DateTime? ParseAsUtc(string input)
+            {
+                if (DateTime.TryParse(input, out var parsed))
+                {
+                    return parsed.Kind == DateTimeKind.Utc
+                        ? parsed
+                        : DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+                }
+                return null;
+            }
+
             var nft = new NFT
             {
                 Name = drugName,
                 BatchNumber = batchNumber,
-                ManufactureDate = DateTime.TryParse(manufacturingDate, out var mfgDate) ? mfgDate : null,
-                ExpiryDate = DateTime.TryParse(expiryDate, out var expDate) ? expDate : null,
+                Gtin = string.IsNullOrWhiteSpace(gtin) ? null : gtin,
+                ManufactureDate = ParseAsUtc(manufacturingDate),
+                ExpiryDate = ParseAsUtc(expiryDate),
                 Description = description,
+                Formulation = string.IsNullOrWhiteSpace(formulation) ? null : formulation,
                 ImageUrl = imageUrl,
                 CertificateUrl = certificateUrl,
                 Status = "created",
@@ -225,13 +246,29 @@ public class IPFSController : ControllerBase
                 _context.NFTs.Add(nft);
                 await _context.SaveChangesAsync();
             }
-            catch (Exception dbEx)
+        catch (DbUpdateException dbEx)
             {
+            var innerMessage = dbEx.InnerException?.Message;
+            _logger.LogError(dbEx, "Error saving NFT to database. Inner: {InnerMessage}", innerMessage);
+
+            // Detect missing column (schema not migrated)
+            if (dbEx.InnerException is PostgresException pgEx && pgEx.SqlState == "42703")
+            {
+                return StatusCode(500, new
+                {
+                    error = "Lỗi khi lưu NFT vào database",
+                    message = "Schema database chưa đồng bộ (thiếu cột). Hãy chạy dotnet ef database update.",
+                    innerMessage = innerMessage,
+                    ipfsHash = ipfsHash
+                });
+            }
+
                 Console.WriteLine($"Error saving NFT to database: {dbEx.Message}");
                 return StatusCode(500, new { 
                     error = "Lỗi khi lưu NFT vào database", 
-                    message = dbEx.Message,
-                    ipfsHash = ipfsHash // Trả về IPFS hash để có thể retry
+                message = dbEx.Message,
+                innerMessage,
+                ipfsHash = ipfsHash // Trả về IPFS hash để có thể retry
                 });
             }
 

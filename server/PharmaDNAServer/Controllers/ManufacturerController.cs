@@ -78,6 +78,14 @@ public class ManufacturerController : ControllerBase
         {
             Name = request.Name,
             BatchNumber = request.BatchNumber,
+            Gtin = request.Gtin,
+            ManufactureDate = request.ManufactureDate,
+            ExpiryDate = request.ExpiryDate,
+            Description = request.Description,
+            Formulation = request.Formulation,
+            ImageUrl = request.ImageUrl,
+            CertificateUrl = request.CertificateUrl,
+            IpfsHash = request.IpfsHash,
             Status = request.Status,
             ManufacturerAddress = request.ManufacturerAddress.ToLower(),
             CreatedAt = now
@@ -251,6 +259,14 @@ public class CreateNFTRequest
 {
     public string Name { get; set; } = string.Empty;
     public string? BatchNumber { get; set; }
+    public string? Gtin { get; set; }
+    public DateTime? ManufactureDate { get; set; }
+    public DateTime? ExpiryDate { get; set; }
+    public string? Description { get; set; }
+    public string? Formulation { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? CertificateUrl { get; set; }
+    public string? IpfsHash { get; set; }
     public string Status { get; set; } = string.Empty;
     public string ManufacturerAddress { get; set; } = string.Empty;
 }

@@ -40,13 +40,15 @@ import {
 
 interface UploadResult {
   success: boolean;
-  IpfsHash: string;
+  ipfsHash: string;
   metadata: {
     drugName: string;
     batchNumber: string;
     manufacturingDate: string;
     expiryDate: string;
     description: string;
+    gtin?: string;
+    formulation?: string;
     manufacturerAddress: string;
     timestamp: string;
     files: string[];
@@ -65,9 +67,11 @@ function ManufacturerContent() {
   const [formData, setFormData] = useState({
     drugName: "",
     batchNumber: "",
+    gtin: "",
     manufacturingDate: "",
     expiryDate: "",
     description: "",
+    formulation: "",
   });
   const [drugImage, setDrugImage] = useState<File | null>(null);
   const [certificate, setCertificate] = useState<File | null>(null);
@@ -235,9 +239,11 @@ function ManufacturerContent() {
       const form = new FormData();
       form.append("drugName", formData.drugName);
       form.append("batchNumber", formData.batchNumber);
+      form.append("gtin", formData.gtin);
       form.append("manufacturingDate", formData.manufacturingDate);
       form.append("expiryDate", formData.expiryDate);
       form.append("description", formData.description);
+      form.append("formulation", formData.formulation);
       form.append("manufacturerAddress", account); // Thêm địa chỉ ví
       if (drugImage) form.append("drugImage", drugImage);
       if (certificate) form.append("certificate", certificate);
@@ -293,7 +299,7 @@ function ManufacturerContent() {
       return;
     }
 
-    if (!uploadResult?.IpfsHash) {
+    if (!uploadResult?.ipfsHash) {
       toast.error("Chưa có IPFS hash để mint NFT");
       return;
     }
@@ -315,7 +321,7 @@ function ManufacturerContent() {
       );
       
       toast.loading("Đang mint NFT trên blockchain...");
-      const tx = await contract.mintProductNFT(uploadResult.IpfsHash);
+      const tx = await contract.mintProductNFT(uploadResult.ipfsHash);
       await tx.wait();
       setUploadStatus("success");
       toast.success("Mint NFT thành công! Form sẽ được reset để nhập lô mới.");
@@ -350,9 +356,11 @@ function ManufacturerContent() {
     setFormData({
       drugName: "",
       batchNumber: "",
+      gtin: "",
       manufacturingDate: "",
       expiryDate: "",
       description: "",
+      formulation: "",
     });
     setDrugImage(null);
     setCertificate(null);
@@ -430,6 +438,18 @@ function ManufacturerContent() {
               />
             </div>
 
+            <div>
+              <Label htmlFor="gtin">GTIN / Mã sản phẩm</Label>
+              <Input
+                id="gtin"
+                name="gtin"
+                value={formData.gtin}
+                onChange={handleInputChange}
+                placeholder="Ví dụ: 8938505974195"
+                disabled={uploadStatus === "success"}
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="manufacturingDate">Ngày sản xuất *</Label>
@@ -466,6 +486,19 @@ function ManufacturerContent() {
                 onChange={handleInputChange}
                 placeholder="Thông tin bổ sung về lô thuốc..."
                 rows={3}
+                disabled={uploadStatus === "success"}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="formulation">Thành phần / Dạng bào chế</Label>
+              <Textarea
+                id="formulation"
+                name="formulation"
+                value={formData.formulation}
+                onChange={handleInputChange}
+                placeholder="Mỗi viên chứa..., dạng bào chế..."
+                rows={4}
                 disabled={uploadStatus === "success"}
               />
             </div>
@@ -618,7 +651,7 @@ function ManufacturerContent() {
                 <div>
                   <h4 className="font-semibold mb-2">IPFS Metadata Hash:</h4>
                   <p className="text-sm font-mono break-all">
-                    {uploadResult.IpfsHash}
+                    {uploadResult.ipfsHash}
                   </p>
                   <Button
                     variant="link"
@@ -626,7 +659,7 @@ function ManufacturerContent() {
                     onClick={() => {
                       const gateway = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://gateway.pinata.cloud/ipfs/";
                       const gatewayUrl = gateway.endsWith("/") ? gateway : `${gateway}/`;
-                      window.open(`${gatewayUrl}${uploadResult.IpfsHash}`, "_blank");
+                      window.open(`${gatewayUrl}${uploadResult.ipfsHash}`, "_blank");
                     }}
                   >
                     <ExternalLink className="w-4 h-4 mr-1" />
