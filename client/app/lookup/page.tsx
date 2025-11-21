@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   QrCode,
   Search,
@@ -19,52 +18,179 @@ import {
   AlertTriangle,
   CheckCircle,
   MapPin,
-  Calendar,
 } from "lucide-react";
 import QRScanner from "@/components/QRScanner";
-import Image from "next/image";
-import { useEffect } from "react";
 import { toast } from "sonner";
 
-// Mock drug data for public lookup
-const mockPublicData: Record<string, any> = {};
+const statusConfigs: Record<
+  string,
+  { title: string; description: string; color: string; Icon: typeof CheckCircle }
+> = {
+  authentic: {
+    title: "Thuốc chính hãng ✓",
+    description: "Lô thuốc đã được xác thực trên blockchain.",
+    color: "bg-green-100 text-green-800 border-green-200",
+    Icon: CheckCircle,
+  },
+  warning: {
+    title: "Thuốc cảnh báo ⚠️",
+    description: "Hãy liên hệ nhà sản xuất hoặc nhà thuốc để kiểm tra thêm.",
+    color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    Icon: AlertTriangle,
+  },
+  not_found: {
+    title: "Không xác minh được",
+    description: "Không tìm thấy thông tin lô thuốc trong hệ thống.",
+    color: "bg-red-100 text-red-800 border-red-200",
+    Icon: AlertTriangle,
+  },
+  default: {
+    title: "Đang xác minh",
+    description: "Kết quả sẽ hiển thị ngay sau khi quét.",
+    color: "bg-gray-100 text-gray-800 border-gray-200",
+    Icon: Shield,
+  },
+};
+
+const resolveMediaUrl = (url?: string | null) => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  let cleaned = trimmed.replace(/^ipfs:\/\//i, "").replace(/^ipfs\//i, "");
+  if (cleaned.startsWith("ipfs/")) {
+    cleaned = cleaned.substring(5);
+  }
+
+  const encoded = encodeURIComponent(cleaned);
+  return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5196/api"}/manufacturer/ipfs-file/${encoded}`;
+};
 
 export default function LookupPage() {
   const [scanMode, setScanMode] = useState<"qr" | "manual">("qr");
-  const [tokenId, setTokenId] = useState("");
   const [batchName, setBatchName] = useState("");
   const [drugData, setDrugData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [milestones, setMilestones] = useState<any[]>([]);
 
   const handleQRScan = (result: string) => {
-    setTokenId(result);
+    setBatchName(result);
     lookupDrug(result);
   };
 
-  const lookupDrug = async (name: string) => {
+  const lookupDrug = async (query: string) => {
+    const searchValue = query.trim();
+    if (!searchValue) {
+      toast.error("Vui lòng nhập thông tin lô thuốc");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Lấy thông tin NFT theo name
       const { API_BASE_URL } = await import("@/lib/api");
-      const nftRes = await fetch(
-        `${API_BASE_URL}/manufacturer?name=${encodeURIComponent(name)}`
-      );
-      const nftData = await nftRes.json();
-      if (!nftRes.ok || !nftData || !nftData.id) {
+
+      const fetchByParam = async (param: "batchNumber" | "name") => {
+        const res = await fetch(
+          `${API_BASE_URL}/manufacturer?${param}=${encodeURIComponent(searchValue)}`
+        );
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || Object.keys(data).length === 0) return null;
+        return data;
+      };
+
+      let nftData = await fetchByParam("batchNumber");
+      if (!nftData) {
+        nftData = await fetchByParam("name");
+      }
+
+      const hasValidData =
+        nftData &&
+        (nftData.batchNumber ||
+          nftData.batch_number ||
+          nftData.name ||
+          nftData.id);
+
+      if (!hasValidData) {
         setDrugData(null);
         setMilestones([]);
-        toast.error("Không tìm thấy lô thuốc với tên này");
-        setIsLoading(false);
+        toast.error("Không tìm thấy lô thuốc với thông tin đã nhập");
         return;
       }
-      setDrugData(nftData);
+
+      const normalizedNft = {
+        id: nftData.id,
+        name: nftData.name ?? nftData.metadata?.name ?? "",
+        batchNumber: nftData.batchNumber ?? nftData.batch_number ?? "",
+        manufactureDate:
+          nftData.manufactureDate ??
+          nftData.manufacture_date ??
+          nftData.metadata?.manufactureDate ??
+          "",
+        expiryDate:
+          nftData.expiryDate ??
+          nftData.expiry_date ??
+          nftData.metadata?.expiryDate ??
+          "",
+        description:
+          nftData.description ?? nftData.metadata?.description ?? "",
+        formulation: nftData.formulation ?? nftData.metadata?.formulation ?? "",
+        status: nftData.status ?? "",
+        manufacturerAddress:
+          nftData.manufacturerAddress ??
+          nftData.manufacturer_address ??
+          "",
+        distributorAddress:
+          nftData.distributorAddress ?? nftData.distributor_address ?? "",
+        pharmacyAddress:
+          nftData.pharmacyAddress ?? nftData.pharmacy_address ?? "",
+        imageUrl:
+          nftData.imageUrl ??
+          nftData.image_url ??
+          nftData.image ??
+          nftData.metadata?.image ??
+          "",
+        certificateUrl:
+          nftData.certificateUrl ??
+          nftData.certificate_url ??
+          nftData.metadata?.certificateUrl ??
+          "",
+        gtin: nftData.gtin ?? nftData.metadata?.gtin ?? "",
+      };
+
+      setDrugData(normalizedNft);
+
       // Lấy lịch sử vận chuyển
       const msRes = await fetch(
-        `${API_BASE_URL}/manufacturer/milestone?nft_id=${nftData.id}`
+        `${API_BASE_URL}/manufacturer/milestone?nftId=${normalizedNft.id}`
       );
       const msData = await msRes.json();
-      setMilestones(msData || []);
+      const normalizedMilestones = Array.isArray(msData)
+        ? msData
+            .map((m: any) => ({
+              id: m.id,
+              type: m.type,
+              description: m.description,
+              location: m.location,
+              timestamp:
+                m.timestamp ??
+                m.timeStamp ??
+                m.createdAt ??
+                m.created_at ??
+                null,
+              actorAddress: (m.actorAddress ?? m.actor_address ?? "").toLowerCase(),
+            }))
+            .filter((m: any) => !!m.timestamp)
+            .sort(
+              (a: any, b: any) =>
+                new Date(a.timestamp).getTime() -
+                new Date(b.timestamp).getTime()
+            )
+        : [];
+      setMilestones(normalizedMilestones);
     } catch (error) {
       toast.error("Có lỗi xảy ra khi tra cứu");
       setDrugData(null);
@@ -74,29 +200,8 @@ export default function LookupPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "authentic":
-        return <CheckCircle className="w-6 h-6 text-green-600" />;
-      case "warning":
-      case "not_found":
-        return <AlertTriangle className="w-6 h-6 text-red-600" />;
-      default:
-        return <Shield className="w-6 h-6 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "authentic":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "warning":
-      case "not_found":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+  const statusInfo =
+    statusConfigs[drugData?.status?.toLowerCase()] ?? statusConfigs.default;
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -213,14 +318,12 @@ export default function LookupPage() {
             ) : drugData ? (
               <div className="space-y-6">
                 {/* Status Banner */}
-                <div className="p-4 rounded-lg border-2 bg-green-100 text-green-800 border-green-200">
+                <div className={`p-4 rounded-lg border-2 ${statusInfo.color}`}>
                   <div className="flex items-center">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
+                    <statusInfo.Icon className="w-6 h-6 text-current" />
                     <div className="ml-3">
-                      <h3 className="font-semibold">Thuốc chính hãng ✓</h3>
-                      <p className="text-sm mt-1">
-                        Lô thuốc đã được xác thực trên blockchain.
-                      </p>
+                      <h3 className="font-semibold">{statusInfo.title}</h3>
+                      <p className="text-sm mt-1">{statusInfo.description}</p>
                     </div>
                   </div>
                 </div>
@@ -231,44 +334,70 @@ export default function LookupPage() {
                   </div>
                   <div className="font-bold text-lg mb-1">{drugData.name}</div>
                   <div className="text-sm text-gray-700 mb-1">
-                    Số lô: {drugData.batch_number}
+                    Số lô: {drugData.batchNumber || "-"}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
-                    Ngày sản xuất: {drugData.manufacture_date}
+                    Ngày sản xuất: {drugData.manufactureDate || "-"}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
-                    Hạn dùng: {drugData.expiry_date}
+                    Hạn dùng: {drugData.expiryDate || "-"}
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Mô tả: {drugData.description}
                   </div>
+                  {drugData.formulation && (
+                    <div className="text-sm text-gray-700 mb-1">
+                      Dạng bào chế: {drugData.formulation}
+                    </div>
+                  )}
+                  {drugData.gtin && (
+                    <div className="text-sm text-gray-700 mb-1">
+                      GTIN: {drugData.gtin}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-700 mb-1">
                     Trạng thái: <b>{drugData.status}</b>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Manufacturer:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.manufacturer_address}
+                      {drugData.manufacturerAddress || "-"}
                     </span>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Distributor:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.distributor_address}
+                      {drugData.distributorAddress || "-"}
                     </span>
                   </div>
                   <div className="text-sm text-gray-700 mb-1">
                     Pharmacy:{" "}
                     <span className="font-mono text-xs">
-                      {drugData.pharmacy_address}
+                      {drugData.pharmacyAddress || "-"}
                     </span>
                   </div>
-                  {drugData.image_url && (
+                  {drugData.certificateUrl && (
+                    <div className="text-sm text-blue-700 mb-2">
+                      <a
+                        href={drugData.certificateUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        Xem giấy chứng nhận
+                      </a>
+                    </div>
+                  )}
+                  {resolveMediaUrl(drugData.imageUrl) ? (
                     <img
-                      src={drugData.image_url}
+                      src={resolveMediaUrl(drugData.imageUrl)}
                       alt="Ảnh thuốc"
-                      className="max-w-xs rounded my-2"
+                      className="max-w-xs rounded my-2 border"
                     />
+                  ) : (
+                    <div className="text-xs text-gray-500 my-2">
+                      Không có ảnh hiển thị
+                    </div>
                   )}
                 </div>
                 {/* Lịch sử vận chuyển */}
@@ -302,9 +431,9 @@ export default function LookupPage() {
                               <td className="border px-2 py-1">
                                 {m.description}
                               </td>
-                              <td className="border px-2 py-1">{m.location}</td>
+                              <td className="border px-2 py-1">{m.location || "-"}</td>
                               <td className="border px-2 py-1 font-mono text-xs">
-                                {m.actor_address}
+                                {m.actorAddress || "-"}
                               </td>
                             </tr>
                           ))}

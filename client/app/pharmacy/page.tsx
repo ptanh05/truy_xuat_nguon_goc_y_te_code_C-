@@ -145,7 +145,13 @@ function PharmacyContent() {
           nftData.distributorAddress ?? nftData.distributor_address ?? "",
         pharmacyAddress:
           nftData.pharmacyAddress ?? nftData.pharmacy_address ?? "",
-        imageUrl: nftData.imageUrl ?? nftData.image_url ?? "",
+        imageUrl:
+          nftData.imageUrl ??
+          nftData.image_url ??
+          nftData.image ??
+          nftData.metadata?.image ??
+          nftData.metadata?.imageUrl ??
+          "",
       };
       setDrugData(normalizedNft);
       // Lấy lịch sử vận chuyển
